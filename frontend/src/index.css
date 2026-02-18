@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body.theme-light {
+    background-color: theme('colors.light.bg');
+    color: theme('colors.light.text');
+    background-image: theme('backgroundImage.light-gradient');
+  }
+
+  body.theme-dark {
+    background-color: theme('colors.dark.bg');
+    color: theme('colors.dark.text');
+    background-image: theme('backgroundImage.dark-gradient');
+  }
+
+  body.theme-glass {
+    color: theme('colors.light.text');
+    background-image: theme('backgroundImage.glass-gradient');
+  }
+}
+
+@layer components {
+
+  /* Dynamic Glass Panel */
+  .glass-panel {
+    @apply backdrop-blur-[20px] border border-white/30 rounded-[28px] transition-all duration-300;
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: theme('boxShadow.glass');
+  }
+
+  .theme-dark .glass-panel {
+    @apply border-white/10 backdrop-blur-[25px];
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 30px rgba(147, 51, 234, 0.2);
+  }
+
+  /* Glass Card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    @apply border border-white/20 rounded-3xl p-6 transition-transform duration-300 hover:scale-[1.02];
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply rounded-full px-6 py-3 font-semibold text-white shadow-lg transition-all hover:scale-105 active:scale-95;
+    background: linear-gradient(135deg, #A78BFA, #22D3EE);
+  }
+
+  .theme-dark .btn-primary {
+    background: linear-gradient(135deg, #9333EA, #6366F1);
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
+  }
+
+  /* Inputs */
+  .input-glass {
+    @apply w-full rounded-full border border-white/30 bg-white/40 px-5 py-3 backdrop-blur-md focus:outline-none focus:ring-2;
+  }
+
+  .input-glass:focus {
+    --tw-ring-color: theme('colors.accent.purple');
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-100vh) rotate(20deg);
+    opacity: 0;
+  }
+}
+
+.balloon {
+  position: absolute;
+  bottom: -100px;
+  width: 50px;
+  height: 60px;
+  background-color: #ff5e57;
+  border-radius: 50%;
+  animation: float 10s infinite ease-in;
+  z-index: 50;
+}
+
+.balloon::before {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 100px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
