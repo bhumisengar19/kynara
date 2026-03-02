@@ -2,16 +2,12 @@ import { Routes, Route } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./Login";
 import Sidebar from "./components/Sidebar";
+import Background3D from "./components/Background3D";
 
 /* Pages */
 import ChatPage from "./pages/ChatPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import AppsPage from "./pages/AppsPage";
-import ImagesPage from "./pages/ImagesPage";
-import CodexPage from "./pages/CodexPage";
-import GPTsPage from "./pages/GPTsPage";
 import ProfilePage from "./pages/ProfilePage";
-import AppLoader from "./pages/AppLoader";
+import { SidebarDemo } from "./components/SidebarDemo";
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -23,19 +19,15 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex font-sans overflow-hidden transition-colors duration-300">
+    <div className="h-screen flex font-sans overflow-hidden bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-300 relative">
+      <Background3D />
       <Sidebar />
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative h-full">
         <Routes>
           <Route path="/" element={<ChatPage />} />
           <Route path="/c/:id" element={<ChatPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/apps" element={<AppsPage />} />
-          <Route path="/apps/:appRoute" element={<AppLoader />} />
-          <Route path="/images" element={<ImagesPage />} />
-          <Route path="/codex" element={<CodexPage />} />
-          <Route path="/gpts" element={<GPTsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/sidebar-demo" element={<div className="flex-1 flex items-center justify-center p-8 bg-black/20"><SidebarDemo /></div>} />
         </Routes>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
     Search, LayoutGrid, Code, FileText, Image, FileCheck, Github,
-    Database, BarChart, LayoutKanban, DollarSign, Share2,
+    Database, BarChart, Kanban, DollarSign, Share2,
     CheckCircle, Plus, Trash2, ExternalLink
 } from "lucide-react";
 import { useAppsContext } from "../context/AppsContext";
@@ -15,7 +15,7 @@ const ICON_MAP = {
     "Github": Github,
     "Database": Database,
     "BarChart": BarChart,
-    "LayoutKanban": LayoutKanban,
+    "LayoutKanban": Kanban,
     "DollarSign": DollarSign,
     "Share2": Share2
 };
@@ -65,8 +65,8 @@ export default function AppsPage() {
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === cat
-                                    ? "bg-accent-purple text-white"
-                                    : "bg-white/5 hover:bg-white/10 text-white/60"
+                                ? "bg-accent-purple text-white"
+                                : "bg-white/5 hover:bg-white/10 text-white/60"
                                 }`}
                         >
                             {cat}

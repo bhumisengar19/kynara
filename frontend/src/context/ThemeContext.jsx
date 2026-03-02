@@ -6,7 +6,7 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
         const savedTheme = localStorage.getItem('theme');
-        return savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        return savedTheme || 'dark'; // Default to Futuristic Dark
     });
 
     useEffect(() => {
@@ -14,7 +14,7 @@ export const ThemeProvider = ({ children }) => {
         const body = window.document.body;
 
         // Remove all previous theme classes
-        body.classList.remove('theme-light', 'theme-dark', 'theme-glass');
+        body.classList.remove('theme-glass', 'theme-dark');
         root.classList.remove('dark');
 
         // Apply new theme

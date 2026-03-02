@@ -7,7 +7,24 @@
     <title>KYNARA</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root" style="background-color: #0f0b1f; min-height: 100vh; color: white; display: flex; align-items: center; justify-content: center;">
+      <h1>Loading Kynara Application...</h1>
+    </div>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '0';
+        errorDiv.style.left = '0';
+        errorDiv.style.width = '100%';
+        errorDiv.style.backgroundColor = 'rgba(0,0,0,0.9)';
+        errorDiv.style.color = '#ff5555';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.zIndex = '9999';
+        errorDiv.innerHTML = '<h3>Startup Error:</h3><pre>' + message + '\n' + source + ':' + lineno + '</pre>';
+        document.body.appendChild(errorDiv);
+      };
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,5 +1,10 @@
 import Chat from "../models/Chat.js";
 import { generateGeminiResponse } from "../utils/gemini.js";
+import { PROMPTS } from "../utils/prompts.js";
+
+const formatHistory = (messages) => {
+  return messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n');
+};
 
 /*
 ========================================
@@ -7,12 +12,14 @@ import { generateGeminiResponse } from "../utils/gemini.js";
 ========================================
 */
 export const createNewChat = async (req, res) => {
+  console.log("createNewChat called by user:", req.user?._id);
   try {
     const chat = await Chat.create({
       user: req.user._id,
       title: "New Chat",
       messages: [],
     });
+    console.log("Chat created successfully:", chat._id);
 
     res.status(201).json(chat);
   } catch (error) {
@@ -27,6 +34,7 @@ export const createNewChat = async (req, res) => {
 ========================================
 */
 export const getUserChats = async (req, res) => {
+  console.log("getUserChats called by user:", req.user?._id);
   try {
     const chats = await Chat.find({
       user: req.user._id,
@@ -153,13 +161,16 @@ export const getChatHistory = async (req, res) => {
 ========================================
 */
 export const sendMessage = async (req, res) => {
+  console.log("Received sendMessage request:", req.body);
   try {
-    const { message, chatId } = req.body;
+    const { message, chatId, action, targetLanguage } = req.body;
 
-    if (!message || !chatId) {
-      return res.status(400).json({ message: "Message and chatId required" });
+    if ((!message && !action) || !chatId) {
+      console.warn("Missing message or chatId");
+      return res.status(400).json({ message: "Content and chatId required" });
     }
 
+    console.log(`Finding chat ${chatId} for user ${req.user._id}...`);
     const chat = await Chat.findOne({
       _id: chatId,
       user: req.user._id,
@@ -169,43 +180,68 @@ export const sendMessage = async (req, res) => {
       return res.status(404).json({ message: "Chat not found" });
     }
 
-    // Add user message
-    chat.messages.push({
-      role: "user",
-      content: message,
-    });
+    let prompt = "";
+    let isAction = false;
 
-    // MASTER SYSTEM PROMPT
-    const systemPrompt = `You are Kynara AI.
-Chat Session Rules:
-- Treat each session as fresh.
-- Be professional, concise, and helpful.
-- Do not mention that you are an AI unless asked.
-`;
+    // Handle special actions
+    if (action) {
+      isAction = true;
+      switch (action.toLowerCase()) {
+        case 'summarize':
+          prompt = PROMPTS.SUMMARIZE(message);
+          break;
+        case 'humanize':
+          prompt = PROMPTS.HUMANIZE(message);
+          break;
+        case 'explain':
+          prompt = PROMPTS.EXPLAIN_SIMPLY(message);
+          break;
+        case 'translate':
+          prompt = PROMPTS.TRANSLATE(message, targetLanguage || 'English');
+          break;
+        case 'grammar':
+          prompt = PROMPTS.IMPROVE_GRAMMAR(message);
+          break;
+        case 'regenerate':
+          const lastAssistantMessage = [...chat.messages].reverse().find(m => m.role === 'assistant');
+          if (lastAssistantMessage) {
+            prompt = PROMPTS.REGENERATE() + "\n\nPrevious Answer:\n" + lastAssistantMessage.content;
+          } else {
+            prompt = message; // Fallback
+          }
+          break;
+        default:
+          prompt = message;
+      }
+    } else {
+      // Add user message to history
+      chat.messages.push({
+        role: "user",
+        content: message,
+      });
 
-    const fullPrompt = `${systemPrompt}\n\nUser: ${message}`;
+      // Get conversation history (excluding the message we just added)
+      const history = formatHistory(chat.messages.slice(0, -1));
+      prompt = PROMPTS.MEMORY_CHAT(history, message);
+    }
 
-    // Parallel Execution: Generate Response + Title (if first message)
-    const replyPromise = generateGeminiResponse(fullPrompt);
-    let titlePromise = null;
+    // Parallel Execution: Generate Response + Title (if first message and not an action)
+    const replyPromise = generateGeminiResponse(prompt);
 
-    // Check if this is the first interaction (only one user message so far)
-    if (chat.messages.length === 1) {
-      const titlePrompt = `Generate a 3-6 word short, professional, and concave title for a chat that starts with this message: "${message}". 
-Rules:
-- Capitalize properly.
-- No punctuation.
-- No "Chat" or generic words.
-- Strictly 3-6 words.
-- No quotes.`;
-      titlePromise = generateGeminiResponse(titlePrompt);
+    let titlePromise = Promise.resolve(null);
+    if (!isAction && chat.messages.length === 1) {
+      const historyForTitle = formatHistory(chat.messages);
+      titlePromise = generateGeminiResponse(PROMPTS.GENERATE_TITLE(historyForTitle)).catch(err => {
+        console.error("Title generation failed:", err.message);
+        return null;
+      });
     }
 
     const [reply, generatedTitle] = await Promise.all([replyPromise, titlePromise]);
 
     // Add assistant response
     chat.messages.push({
-      role: "assistant", // Fixed role for db
+      role: "assistant",
       content: reply,
     });
 
@@ -217,10 +253,9 @@ Rules:
     }
 
     await chat.save();
-
     res.json({ reply, newTitle });
   } catch (error) {
     console.error("SEND MESSAGE ERROR:", error);
-    res.status(500).json({ message: "Chat failed" });
+    res.status(500).json({ message: error.message || "Chat failed" });
   }
 };

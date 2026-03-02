@@ -1,66 +1,62 @@
 
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 
-export default function UserProfile({ user, onBack }) {
+export default function UserProfile({ user, onBack, onLogout }) {
     if (!user) return <div className="p-8">No user data found.</div>;
 
     return (
-        <div className="flex-1 flex flex-col p-8 glass-panel m-4 ml-0 relative overflow-hidden animate-in fade-in duration-300">
-            <div className="flex items-center gap-4 mb-8">
+        <div className="flex-1 flex flex-col p-10 bg-light-bg dark:bg-dark-bg m-6 rounded-[48px] shadow-[0_20px_60px_rgba(168,85,247,0.05)] relative overflow-hidden transition-colors duration-500">
+            <div className="flex items-center gap-6 mb-12">
                 <button
                     onClick={onBack}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                    className="p-4 rounded-2xl bg-white dark:bg-dark-secondary shadow-sm hover:shadow-md transition-all text-purple-400"
                 >
                     <ArrowLeft size={24} />
                 </button>
-                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent-purple to-accent-cyan">
-                    Your Profile
+                <h2 className="text-4xl font-display font-black text-light-text dark:text-dark-text tracking-tighter uppercase">
+                    Profile Dashboard
                 </h2>
             </div>
 
-            <div className="max-w-2xl w-full mx-auto space-y-8">
-                <div className="glass-card bg-white/5 p-8 relative overflow-hidden">
-                    {/* Decorative Elements */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent-purple/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-accent-cyan/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+            <div className="max-w-xl w-full mx-auto">
+                <div className="bg-white dark:bg-dark-secondary p-12 rounded-[48px] shadow-2xl shadow-purple-900/5 border border-purple-100 dark:border-white/5 relative">
+                    <div className="flex flex-col items-center mb-12">
+                        <div className="w-28 h-28 rounded-[36px] bg-purple-500 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-purple-500/20 mb-6">
+                            {user.name ? user.name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <h3 className="text-2xl font-black text-light-text dark:text-dark-text">{user.name}</h3>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400 mt-2">Verified Member</p>
+                    </div>
 
-                    <div className="grid gap-8 relative z-10">
-                        <div className="flex items-center gap-6 pb-6 border-b border-white/10">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-purple to-accent-cyan flex items-center justify-center text-3xl font-bold text-white shadow-lg">
-                                {user.name ? user.name.charAt(0).toUpperCase() : '?'}
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-bold">{user.name}</h3>
-                                <p className="opacity-60">Member since {new Date().getFullYear()}</p>
+                    <div className="space-y-8">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-300 block mb-3 pl-2">Email Address</label>
+                            <div className="text-sm font-bold bg-purple-50/50 dark:bg-white/5 px-6 py-4 rounded-[20px] border border-purple-100 dark:border-white/5 text-light-text dark:text-dark-text">
+                                {user.email}
                             </div>
                         </div>
 
-                        <div className="space-y-6">
-                            <div>
-                                <label className="text-xs uppercase tracking-wider opacity-50 font-semibold block mb-2">Email Address</label>
-                                <div className="text-lg bg-white/5 px-4 py-3 rounded-xl border border-white/10 backdrop-blur-sm">
-                                    {user.email}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-xs uppercase tracking-wider opacity-50 font-semibold block mb-2">Date of Birth</label>
-                                <div className="text-lg bg-white/5 px-4 py-3 rounded-xl border border-white/10 backdrop-blur-sm">
-                                    {user.dob ? new Date(user.dob).toLocaleDateString(undefined, {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    }) : 'Not provided'}
-                                </div>
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-300 block mb-3 pl-2">Birthday</label>
+                            <div className="text-sm font-bold bg-purple-50/50 dark:bg-white/5 px-6 py-4 rounded-[20px] border border-purple-100 dark:border-white/5 text-light-text dark:text-dark-text">
+                                {user.dob ? new Date(user.dob).toLocaleDateString(undefined, {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                }) : 'Not set'}
                             </div>
                         </div>
+                    </div>
 
-                        <div className="pt-4 mt-2">
-                            <div className="text-xs opacity-40 font-mono">
-                                ID: {user._id || user.id || 'Unknown'}
-                            </div>
-                        </div>
+                    <div className="mt-12 pt-10 border-t border-purple-100 dark:border-white/5">
+                        <button
+                            onClick={onLogout}
+                            className="w-full py-4 bg-red-50 dark:bg-red-950/20 text-red-500 font-black rounded-[24px] hover:bg-red-100 dark:hover:bg-red-950/40 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+                        >
+                            <LogOut size={18} />
+                            Logout Session
+                        </button>
                     </div>
                 </div>
             </div>

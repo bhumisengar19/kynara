@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { useAuth } from "./AuthContext";
 
 const ChatContext = createContext();
@@ -17,7 +17,7 @@ export const ChatProvider = ({ children }) => {
     const fetchChats = async () => {
         if (!token) return;
         try {
-            const res = await axios.get("http://localhost:5000/api/chat/all");
+            const res = await api.get("/chat/all");
             setChats(res.data);
         } catch (err) {
             console.error("Failed to fetch chats", err);
@@ -27,7 +27,7 @@ export const ChatProvider = ({ children }) => {
     const fetchArchivedChats = async () => {
         if (!token) return;
         try {
-            const res = await axios.get("http://localhost:5000/api/chat/archived");
+            const res = await api.get("/chat/archived");
             setArchivedChats(res.data);
         } catch (err) {
             console.error("Failed to fetch archived chats", err);
@@ -45,21 +45,27 @@ export const ChatProvider = ({ children }) => {
     // Actions
     const createChat = async () => {
         try {
-            const res = await axios.post("http://localhost:5000/api/chat/new");
+            console.log("Attempting to create new chat...");
+            const res = await api.post("/chat/new");
+            console.log("Create Chat Success:", res.data);
             const newChat = res.data;
             setChats((prev) => [newChat, ...prev]);
             setCurrentChatId(newChat._id);
             setShowArchived(false);
             return newChat._id;
         } catch (err) {
-            console.error("Create Chat Failed", err);
+            console.error("Create Chat Failed!", {
+                message: err.message,
+                status: err.response?.status,
+                data: err.response?.data
+            });
             return null;
         }
     };
 
     const archiveChat = async (chatId) => {
         try {
-            await axios.put(`http://localhost:5000/api/chat/archive/${chatId}`);
+            await api.put(`/chat/archive/${chatId}`);
             setChats((prev) => prev.filter((c) => c._id !== chatId));
             if (currentChatId === chatId) setCurrentChatId(null);
         } catch (err) {
@@ -69,7 +75,7 @@ export const ChatProvider = ({ children }) => {
 
     const unarchiveChat = async (chatId) => {
         try {
-            await axios.put(`http://localhost:5000/api/chat/unarchive/${chatId}`);
+            await api.put(`/chat/unarchive/${chatId}`);
             setArchivedChats((prev) => prev.filter((c) => c._id !== chatId));
             fetchChats(); // Refresh
         } catch (err) {
@@ -79,7 +85,7 @@ export const ChatProvider = ({ children }) => {
 
     const deleteChat = async (chatId) => {
         try {
-            await axios.delete(`http://localhost:5000/api/chat/${chatId}`);
+            await api.delete(`/chat/${chatId}`);
             setChats((prev) => prev.filter((c) => c._id !== chatId));
             setArchivedChats((prev) => prev.filter((c) => c._id !== chatId));
             if (currentChatId === chatId) setCurrentChatId(null);

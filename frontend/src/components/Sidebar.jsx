@@ -2,33 +2,18 @@ import { useState } from "react";
 import { NavLink, useNavigate, useLocation, Link } from "react-router-dom";
 import {
     Plus, MessageSquare, Archive, Trash2, RotateCcw,
-    FolderArchive, User, LayoutGrid, Image, Code, Box, Folder, Search,
-    FileText, FileCheck, Github, Database, BarChart, LayoutKanban, DollarSign, Share2
+    FolderArchive, User, Search, LogOut
 } from "lucide-react";
 import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
-import { useAppsContext } from "../context/AppsContext";
-
-const ICON_MAP = {
-    "Code": Code,
-    "FileText": FileText,
-    "Image": Image,
-    "FileCheck": FileCheck,
-    "Github": Github,
-    "Database": Database,
-    "BarChart": BarChart,
-    "LayoutKanban": LayoutKanban,
-    "DollarSign": DollarSign,
-    "Share2": Share2
-};
+import { motion } from "framer-motion";
 
 export default function Sidebar() {
     const {
         chats, archivedChats, showArchived, setShowArchived,
         createChat, archiveChat, unarchiveChat, deleteChat
     } = useChatContext();
-    const { user } = useAuth();
-    const { installedApps } = useAppsContext(); // Fetch installed apps
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const id = location.pathname.startsWith('/c/') ? location.pathname.split('/')[2] : null;
@@ -36,7 +21,9 @@ export default function Sidebar() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const handleCreateChat = async () => {
+        console.log("New Chat button clicked");
         const newId = await createChat();
+        console.log("New Chat ID created:", newId);
         if (newId) navigate(`/c/${newId}`);
     };
 
@@ -44,177 +31,92 @@ export default function Sidebar() {
         chat.title?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const menuItems = [
-        { icon: LayoutGrid, label: "Apps", path: "/apps" },
-        { icon: Image, label: "Images", path: "/images" },
-        { icon: Code, label: "Codex", path: "/codex" },
-        { icon: Box, label: "GPTs", path: "/gpts" },
-        { icon: Folder, label: "Projects", path: "/projects" },
-    ];
-
     return (
-        <div className="w-80 m-4 flex flex-col glass-panel relative z-10 transition-all hidden md:flex">
+        <div className="w-76 flex flex-col sidebar-panel relative z-10 transition-all hidden md:flex h-full shadow-[10px_0_30px_rgba(126,34,206,0.03)]">
             {/* HEADER */}
-            <div className="p-6 border-b border-white/10">
-                <div className="flex items-center gap-3 mb-6">
-                    <img src="/logo.png" alt="Kynara Logo" className="w-10 h-10 object-contain hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
-                    <Link to="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent-purple to-accent-cyan">
+            <div className="p-10 pb-6">
+                <div className="flex items-center gap-3 mb-10 group">
+                    <div className="w-11 h-11 bg-accent-purple rounded-[18px] flex items-center justify-center text-white shadow-xl shadow-purple-500/20 group-hover:scale-110 transition-transform duration-500">
+                        <MessageSquare size={22} className="fill-white/20" />
+                    </div>
+                    <Link to="/" className="text-3xl font-display font-black text-light-text dark:text-dark-text tracking-tighter hover:opacity-80 transition-opacity">
                         Kynara
                     </Link>
                 </div>
 
                 <button
                     onClick={handleCreateChat}
-                    className="w-full flex items-center justify-center gap-2 btn-primary group mb-4"
+                    className="w-full flex items-center justify-center gap-3 py-5 px-6 bg-accent-purple text-white font-black rounded-[24px] hover:shadow-2xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none group/btn relative overflow-hidden text-sm uppercase tracking-widest"
                 >
-                    <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                    New Chat
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform" />
+                    <Plus size={22} className="relative z-10" />
+                    <span className="relative z-10">Neural Node</span>
                 </button>
 
                 {/* SEARCH */}
-                <div className="relative mb-4">
+                <div className="relative mt-8 group/search">
                     <input
-                        className="input-glass w-full py-2 pl-9 pr-3 text-sm rounded-lg border border-white/10 bg-white/5 focus:bg-white/10 focus:border-accent-purple/50 transition-colors"
-                        placeholder="Search chats..."
+                        className="w-full py-4 pl-12 pr-4 text-sm font-bold rounded-[22px] border border-purple-100 dark:border-white/5 bg-purple-50/50 dark:bg-white/5 focus:bg-white dark:focus:bg-dark-secondary focus:ring-4 focus:ring-purple-500/5 focus:outline-none transition-all text-light-text dark:text-dark-text placeholder:text-purple-300 font-sans"
+                        placeholder="Scan nodes..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
-                </div>
-
-                {/* NAVIGATION LINKS */}
-                <div className="grid grid-cols-5 gap-2 mb-2">
-                    {menuItems.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) => `flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${isActive ? 'bg-white/20 text-accent-cyan border border-white/10' : 'hover:bg-white/10 opacity-60 hover:opacity-100'}`}
-                            title={item.label}
-                        >
-                            <item.icon size={18} />
-                        </NavLink>
-                    ))}
+                    <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-purple-400 group-focus-within/search:text-accent-purple transition-colors" />
                 </div>
             </div>
 
-            {/* INSTALLED APPS SHORTCUTS */}
-            {installedApps && installedApps.length > 0 && (
-                <div className="px-6 py-2 flex gap-2 overflow-x-auto hide-scrollbar border-b border-white/10">
-                    {installedApps.filter(a => a.isEnabled).map(app => {
-                        const Icon = ICON_MAP[app.icon] || LayoutGrid;
-                        return (
-                            <NavLink
-                                key={app._id}
-                                to={`/apps/${app.route}`}
-                                className={({ isActive }) => `w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isActive ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/20' : 'bg-white/5 hover:bg-white/10 opacity-70 hover:opacity-100'}`}
-                                title={app.name}
-                            >
-                                <Icon size={16} />
-                            </NavLink>
-                        );
-                    })}
-                </div>
-            )}
-
-            {/* ARCHIVED HEADER */}
-            {showArchived && (
-                <div className="px-4 py-2 bg-accent-deepPurple/10 text-xs font-bold uppercase tracking-wider flex justify-between items-center text-accent-cyan">
-                    <span>Archived</span>
-                    <button onClick={() => setShowArchived(false)} className="hover:text-white">Close</button>
-                </div>
-            )}
-
             {/* CHAT LIST */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-6 space-y-3 custom-scrollbar">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-300 mb-4 px-2">Recent Chats</div>
                 {filteredChats.map((chat) => (
                     <div
                         key={chat._id}
                         onClick={() => navigate(`/c/${chat._id}`)}
-                        className={`p-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all duration-200 group relative ${id === chat._id
-                            ? "bg-white/20 shadow-lg border border-white/20"
-                            : "hover:bg-white/10 hover:translate-x-1"
+                        className={`p-4 rounded-2xl cursor-pointer flex items-center gap-4 transition-all duration-300 group relative border ${id === chat._id
+                            ? "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 shadow-sm"
+                            : "bg-transparent border-transparent hover:bg-purple-50/50 dark:hover:bg-purple-900/10"
                             }`}
                     >
-                        <MessageSquare size={18} className="opacity-70 group-hover:opacity-100 shrink-0" />
-                        <span className="truncate font-medium opacity-80 group-hover:opacity-100 flex-1 pr-14">
+                        <div className={`p-2 rounded-xl transition-colors ${id === chat._id ? 'bg-white dark:bg-purple-900/50 text-purple-600' : 'bg-purple-50 dark:bg-white/5 text-purple-300 group-hover:text-purple-500'}`}>
+                            <MessageSquare size={16} />
+                        </div>
+                        <span className={`truncate font-bold text-sm flex-1 ${id === chat._id ? 'text-purple-700 dark:text-white' : 'text-light-text/60 group-hover:text-light-text dark:group-hover:text-white'}`}>
                             {chat.title}
                         </span>
 
-                        {/* HOVER ACTIONS */}
-                        <div className="absolute right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                            {showArchived ? (
-                                <>
-                                    <button
-                                        onClick={() => unarchiveChat(chat._id)}
-                                        className="p-1.5 hover:bg-green-500/20 text-green-400 rounded-md"
-                                        title="Restore"
-                                    >
-                                        <RotateCcw size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => deleteChat(chat._id)}
-                                        className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-md"
-                                        title="Delete Permanently"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => archiveChat(chat._id)}
-                                        className="p-1.5 hover:bg-amber-500/20 text-amber-400 rounded-md"
-                                        title="Archive"
-                                    >
-                                        <Archive size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => deleteChat(chat._id)}
-                                        className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-md"
-                                        title="Delete"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </>
-                            )}
+                        <div className="flex opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => archiveChat(chat._id)} className="p-2 text-purple-300 hover:text-amber-500 transition-colors">
+                                <Archive size={14} />
+                            </button>
                         </div>
                     </div>
                 ))}
-                {showArchived && archivedChats.length === 0 && (
-                    <div className="text-center opacity-40 text-sm mt-10">No archived chats</div>
-                )}
-                {!showArchived && filteredChats.length === 0 && searchTerm && (
-                    <div className="text-center opacity-40 text-sm mt-10">No chats found</div>
-                )}
             </div>
 
             {/* FOOTER */}
-            <div className="p-4 border-t border-white/10 mt-auto space-y-2">
-                {!showArchived && (
-                    <button
-                        onClick={() => setShowArchived(true)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-colors text-sm opacity-60 hover:opacity-100"
-                    >
-                        <FolderArchive size={18} />
-                        <span>Archived Chats</span>
-                    </button>
-                )}
-
+            <div className="p-6 border-t border-purple-100 dark:border-white/5 mt-auto space-y-4">
                 <NavLink
                     to="/profile"
-                    className={({ isActive }) => `w-full flex items-center gap-3 p-3 rounded-xl transition-colors group text-left ${isActive ? "bg-white/20 border border-white/20" : "hover:bg-white/10"
-                        }`}
+                    className={({ isActive }) => `w-full flex items-center gap-4 p-4 rounded-[28px] transition-all group ${isActive ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50" : "hover:bg-purple-50/50 dark:hover:bg-white/5"}`}
                 >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-purple to-accent-cyan flex items-center justify-center text-white font-bold shadow-md shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-black shadow-lg shrink-0 overflow-hidden">
                         {user?.name ? user.name.charAt(0).toUpperCase() : <User size={20} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="font-semibold truncate group-hover:text-accent-cyan transition-colors">
+                        <div className="font-bold text-sm text-light-text dark:text-dark-text truncate">
                             {user?.name || 'User'}
                         </div>
-                        <div className="text-xs opacity-60 truncate">View Profile</div>
+                        <div className="text-[10px] uppercase font-black tracking-widest text-purple-400">Personal</div>
                     </div>
                 </NavLink>
+
+                <button
+                    onClick={logout}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl text-purple-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all font-bold text-xs"
+                >
+                    <LogOut size={16} />
+                    Logout
+                </button>
             </div>
         </div>
     );

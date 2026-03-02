@@ -8,47 +8,46 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
-        // Light Mode
+        // SmartConvo Palette
         light: {
-          bg: '#F8F7FF',
+          bg: '#F3E8FF', // Soft lilac background
           secondary: '#FFFFFF',
-          section: '#F3F0FF',
-          text: '#1F2937',
-          textSecondary: '#6B7280',
-          textMuted: '#9CA3AF',
+          section: '#E9D5FF',
+          text: '#4C1D95', // Deep purple text
+          textSecondary: '#6D28D9',
+          textMuted: '#A78BFA',
         },
-        // Dark Mode
         dark: {
-          bg: '#0F0B1F',
-          secondary: '#14112B',
-          text: '#F3F4F6',
-          textSecondary: '#A1A1AA',
-          textMuted: '#71717A',
+          bg: '#2E1065', // Very deep purple
+          secondary: '#4C1D95',
+          text: '#F5F3FF',
+          textSecondary: '#C4B5FD',
+          textMuted: '#8B5CF6',
         },
-        // Accent Colors
         accent: {
-          purple: '#A78BFA',
-          deepPurple: '#7C3AED',
-          cyan: '#22D3EE',
-          glow: '#9333EA',
+          purple: '#A855F7', // Prime purple
+          deepPurple: '#7E22CE',
+          cyan: '#C084FC', // Lighter purple
+          glow: '#E9D5FF',
         }
       },
       backgroundImage: {
         // Light Mode Gradients
-        'light-gradient': 'linear-gradient(135deg, #F8F7FF 0%, #EDE9FE 100%)',
-        'light-accent': 'linear-gradient(135deg, #A78BFA, #7C3AED)',
-        
+        'light-gradient': 'none',
+        'light-accent': 'linear-gradient(135deg, #3b82f6, #0ea5e9)',
+
         // Dark Mode Gradients
-        'dark-gradient': 'linear-gradient(135deg, #0F0B1F 0%, #1E1B4B 100%)',
-        'dark-accent': 'linear-gradient(135deg, #9333EA, #6366F1)',
-        
-        // Liquid Glass Gradients
-        'glass-gradient': 'linear-gradient(135deg, #E9D5FF 0%, #FDE68A 30%, #BAE6FD 60%, #FBCFE8 100%)',
-        'glass-card': 'linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.2))',
+        'dark-gradient': 'none', // Solid background for standard look
+        'dark-accent': 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+
+        // Liquid Glass Gradients (Removed for standard look)
+        'glass-gradient': 'none',
+        'glass-card': 'none',
       },
       boxShadow: {
         'soft': '0 8px 20px rgba(124, 58, 237, 0.2)',

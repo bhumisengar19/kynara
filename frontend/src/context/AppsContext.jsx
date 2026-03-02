@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { useAuth } from "./AuthContext";
 
 const AppsContext = createContext();
@@ -16,7 +16,7 @@ export const AppsProvider = ({ children }) => {
     const fetchApps = async (search = "", category = "") => {
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:5000/api/apps?search=${search}&category=${category}`);
+            const res = await api.get(`/apps?search=${search}&category=${category}`);
             setApps(res.data);
         } catch (err) {
             console.error("Failed to fetch apps", err);
@@ -29,7 +29,7 @@ export const AppsProvider = ({ children }) => {
     const fetchInstalledApps = async () => {
         if (!user) return;
         try {
-            const res = await axios.get("http://localhost:5000/api/apps/installed");
+            const res = await api.get("/apps/installed");
             setInstalledApps(res.data);
         } catch (err) {
             console.error("Failed to fetch installed apps", err);
@@ -39,7 +39,7 @@ export const AppsProvider = ({ children }) => {
     // Install App
     const installApp = async (appId) => {
         try {
-            const res = await axios.post("http://localhost:5000/api/apps/install", { appId });
+            const res = await api.post("/apps/install", { appId });
             await fetchInstalledApps(); // Refresh installed list
             return true;
         } catch (err) {
@@ -51,7 +51,7 @@ export const AppsProvider = ({ children }) => {
     // Uninstall App
     const uninstallApp = async (appId) => {
         try {
-            await axios.delete(`http://localhost:5000/api/apps/uninstall/${appId}`);
+            await api.delete(`/apps/uninstall/${appId}`);
             setInstalledApps(prev => prev.filter(app => app._id !== appId));
             return true;
         } catch (err) {
@@ -63,7 +63,7 @@ export const AppsProvider = ({ children }) => {
     // Toggle App
     const toggleApp = async (appId) => {
         try {
-            const res = await axios.put(`http://localhost:5000/api/apps/toggle/${appId}`);
+            const res = await api.put(`/apps/toggle/${appId}`);
             setInstalledApps(prev => prev.map(app =>
                 app._id === appId ? { ...app, isEnabled: res.data.isEnabled } : app
             ));

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { Plus, Folder, MoreVertical, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -11,7 +11,7 @@ export default function ProjectsPage() {
 
     const fetchProjects = async () => {
         try {
-            const res = await axios.get("http://localhost:5000/api/projects");
+            const res = await api.get("/projects");
             setProjects(res.data);
         } catch (err) {
             console.error("Failed to load projects", err);
@@ -23,7 +23,7 @@ export default function ProjectsPage() {
     const handleCreate = async () => {
         if (!newTitle) return;
         try {
-            const res = await axios.post("http://localhost:5000/api/projects", {
+            const res = await api.post("/projects", {
                 title: newTitle,
                 description: newDesc,
             });
@@ -39,7 +39,7 @@ export default function ProjectsPage() {
     const handleDelete = async (id) => {
         if (!window.confirm("Delete project?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/projects/${id}`);
+            await api.delete(`/projects/${id}`);
             setProjects(projects.filter(p => p._id !== id));
         } catch (err) {
             console.error("Delete failed", err);
