@@ -8,12 +8,15 @@ import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 
+import { useTheme } from "../context/ThemeContext";
+
 export default function Sidebar() {
     const {
         chats, archivedChats, showArchived, setShowArchived,
         createChat, archiveChat, unarchiveChat, deleteChat
     } = useChatContext();
     const { user, logout } = useAuth();
+    const { theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const id = location.pathname.startsWith('/c/') ? location.pathname.split('/')[2] : null;
@@ -21,9 +24,7 @@ export default function Sidebar() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const handleCreateChat = async () => {
-        console.log("New Chat button clicked");
         const newId = await createChat();
-        console.log("New Chat ID created:", newId);
         if (newId) navigate(`/c/${newId}`);
     };
 
@@ -32,90 +33,103 @@ export default function Sidebar() {
     );
 
     return (
-        <div className="w-76 flex flex-col sidebar-panel relative z-10 transition-all hidden md:flex h-full shadow-[10px_0_30px_rgba(126,34,206,0.03)]">
+        <div className={`w-72 flex flex-col backdrop-blur-3xl border-r relative z-30 transition-all hidden md:flex h-full ${theme === 'dark'
+            ? 'bg-kynaraDark-navy/40 border-white/5 shadow-2xl shadow-black/50'
+            : 'bg-kynaraLight-bg/40 border-kynaraLight-lavender shadow-glass'
+            }`}>
             {/* HEADER */}
-            <div className="p-10 pb-6">
-                <div className="flex items-center gap-3 mb-10 group">
-                    <div className="w-11 h-11 bg-accent-purple rounded-[18px] flex items-center justify-center text-white shadow-xl shadow-purple-500/20 group-hover:scale-110 transition-transform duration-500">
-                        <MessageSquare size={22} className="fill-white/20" />
-                    </div>
-                    <Link to="/" className="text-3xl font-display font-black text-light-text dark:text-dark-text tracking-tighter hover:opacity-80 transition-opacity">
+            <div className={`p-6 border-b ${theme === 'dark' ? 'border-white/5' : 'border-kynaraLight-lavender'}`}>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg ${theme === 'dark' ? 'bg-gradient-to-br from-kynaraDark-lavender to-kynaraDark-violet' : 'bg-gradient-to-br from-kynaraLight-pink to-kynaraLight-lavender'
+                        }`}>K</div>
+                    <Link to="/" className={`text-2xl font-bold bg-clip-text text-transparent ${theme === 'dark' ? 'bg-gradient-to-r from-kynaraDark-lavender to-kynaraDark-indigo' : 'bg-gradient-to-r from-kynaraLight-pink to-kynaraLight-text'
+                        }`}>
                         Kynara
                     </Link>
                 </div>
 
                 <button
                     onClick={handleCreateChat}
-                    className="w-full flex items-center justify-center gap-3 py-5 px-6 bg-accent-purple text-white font-black rounded-[24px] hover:shadow-2xl hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none group/btn relative overflow-hidden text-sm uppercase tracking-widest"
+                    className={`w-full flex items-center justify-center gap-2 py-3.5 font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all group mb-6 relative z-[100] pointer-events-auto cursor-pointer ${theme === 'dark'
+                        ? 'bg-gradient-to-r from-kynaraDark-lavender to-kynaraDark-violet text-white shadow-kynaraDark-lavender/20'
+                        : 'bg-gradient-to-r from-kynaraLight-pink to-kynaraLight-lavender text-kynaraLight-text shadow-kynaraLight-pink/20'
+                        }`}
                 >
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform" />
-                    <Plus size={22} className="relative z-10" />
-                    <span className="relative z-10">Neural Node</span>
+                    <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                    New Chat
                 </button>
 
                 {/* SEARCH */}
-                <div className="relative mt-8 group/search">
+                <div className="relative mb-4">
                     <input
-                        className="w-full py-4 pl-12 pr-4 text-sm font-bold rounded-[22px] border border-purple-100 dark:border-white/5 bg-purple-50/50 dark:bg-white/5 focus:bg-white dark:focus:bg-dark-secondary focus:ring-4 focus:ring-purple-500/5 focus:outline-none transition-all text-light-text dark:text-dark-text placeholder:text-purple-300 font-sans"
-                        placeholder="Scan nodes..."
+                        className={`w-full py-2.5 pl-9 pr-3 text-sm rounded-xl border transition-all ${theme === 'dark'
+                            ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10 focus:border-kynaraDark-lavender/40'
+                            : 'bg-kynaraLight-card border-kynaraLight-lavender text-kynaraLight-text placeholder:text-kynaraLight-text/40 focus:ring-1 focus:ring-kynaraLight-pink/50'
+                            }`}
+                        placeholder="Search chats..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-purple-400 group-focus-within/search:text-accent-purple transition-colors" />
+                    <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`} />
                 </div>
             </div>
 
             {/* CHAT LIST */}
-            <div className="flex-1 overflow-y-auto px-6 space-y-3 custom-scrollbar">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-300 mb-4 px-2">Recent Chats</div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                 {filteredChats.map((chat) => (
                     <div
                         key={chat._id}
                         onClick={() => navigate(`/c/${chat._id}`)}
-                        className={`p-4 rounded-2xl cursor-pointer flex items-center gap-4 transition-all duration-300 group relative border ${id === chat._id
-                            ? "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 shadow-sm"
-                            : "bg-transparent border-transparent hover:bg-purple-50/50 dark:hover:bg-purple-900/10"
+                        className={`p-3 rounded-2xl cursor-pointer flex items-center gap-3 transition-all duration-300 group relative ${id === chat._id
+                            ? theme === 'dark'
+                                ? "bg-white/10 border border-white/10 shadow-lg text-white"
+                                : "bg-kynaraLight-pink/20 border border-kynaraLight-lavender shadow-sm text-kynaraLight-text"
+                            : theme === 'dark'
+                                ? "hover:bg-white/5 text-white/60 hover:text-white"
+                                : "hover:bg-kynaraLight-lavender/20 text-kynaraLight-text/60 hover:text-kynaraLight-text"
                             }`}
                     >
-                        <div className={`p-2 rounded-xl transition-colors ${id === chat._id ? 'bg-white dark:bg-purple-900/50 text-purple-600' : 'bg-purple-50 dark:bg-white/5 text-purple-300 group-hover:text-purple-500'}`}>
-                            <MessageSquare size={16} />
-                        </div>
-                        <span className={`truncate font-bold text-sm flex-1 ${id === chat._id ? 'text-purple-700 dark:text-white' : 'text-light-text/60 group-hover:text-light-text dark:group-hover:text-white'}`}>
+                        <MessageSquare size={18} className="opacity-70 group-hover:opacity-100 shrink-0" />
+                        <span className="truncate font-medium flex-1 pr-14 text-sm">
                             {chat.title}
                         </span>
 
-                        <div className="flex opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => archiveChat(chat._id)} className="p-2 text-purple-300 hover:text-amber-500 transition-colors">
-                                <Archive size={14} />
-                            </button>
+                        <div className="absolute right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => archiveChat(chat._id)} className="p-1.5 hover:bg-amber-500/20 text-amber-400 rounded-lg"><Archive size={14} /></button>
+                            <button onClick={() => deleteChat(chat._id)} className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg"><Trash2 size={14} /></button>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* FOOTER */}
-            <div className="p-6 border-t border-purple-100 dark:border-white/5 mt-auto space-y-4">
+            <div className={`p-4 border-t mt-auto space-y-2 ${theme === 'dark' ? 'border-white/5' : 'border-kynaraLight-lavender'}`}>
                 <NavLink
                     to="/profile"
-                    className={({ isActive }) => `w-full flex items-center gap-4 p-4 rounded-[28px] transition-all group ${isActive ? "bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50" : "hover:bg-purple-50/50 dark:hover:bg-white/5"}`}
+                    className={({ isActive }) => `w-full flex items-center gap-3 p-3 rounded-2xl transition-all group text-left ${isActive
+                        ? theme === 'dark' ? "bg-white/10 border border-white/10" : "bg-kynaraLight-pink/20 border border-kynaraLight-lavender"
+                        : "hover:bg-white/5"
+                        }`}
                 >
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-black shadow-lg shrink-0 overflow-hidden">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-lg shrink-0 group-hover:scale-110 transition-transform ${theme === 'dark' ? 'bg-gradient-to-br from-kynaraDark-lavender to-kynaraDark-violet' : 'bg-gradient-to-br from-kynaraLight-pink to-kynaraLight-lavender'
+                        }`}>
                         {user?.name ? user.name.charAt(0).toUpperCase() : <User size={20} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="font-bold text-sm text-light-text dark:text-dark-text truncate">
+                        <div className={`font-semibold truncate text-sm ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
                             {user?.name || 'User'}
                         </div>
-                        <div className="text-[10px] uppercase font-black tracking-widest text-purple-400">Personal</div>
+                        <div className="text-[10px] opacity-60 truncate">Identity Verified</div>
                     </div>
                 </NavLink>
 
                 <button
                     onClick={logout}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl text-purple-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all font-bold text-xs"
+                    className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-sm opacity-60 hover:opacity-100 group border border-transparent ${theme === 'dark' ? 'hover:bg-red-500/10 hover:text-red-400' : 'hover:bg-red-500/5 hover:text-red-500'
+                        }`}
                 >
-                    <LogOut size={16} />
-                    Logout
+                    <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+                    <span className="font-semibold">Logout</span>
                 </button>
             </div>
         </div>

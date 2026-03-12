@@ -13,8 +13,19 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         try {
             const storedUser = localStorage.getItem("user");
-            if (token && storedUser && storedUser !== "undefined") {
+            const isValidToken = token && token !== "undefined" && token !== "null";
+            const isValidUser = storedUser && storedUser !== "undefined" && storedUser !== "null";
+
+            if (isValidToken && isValidUser) {
                 setUser(JSON.parse(storedUser));
+            } else {
+                // Clear any junk
+                if (!isValidToken || !isValidUser) {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
+                    setUser(null);
+                    setToken(null);
+                }
             }
         } catch (e) {
             console.error("Failed to parse user from local storage", e);

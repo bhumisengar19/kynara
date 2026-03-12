@@ -4,6 +4,13 @@ const messageSchema = new mongoose.Schema(
   {
     role: String,
     content: String,
+    attachments: [
+      {
+        url: String,
+        name: String,
+        fileType: String,
+      },
+    ],
   },
   { _id: false }
 );

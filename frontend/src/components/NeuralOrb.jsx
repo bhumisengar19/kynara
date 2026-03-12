@@ -17,11 +17,11 @@ function Orb() {
             {/* Main Core */}
             <Sphere ref={mesh} args={[1.2, 64, 64]}>
                 <MeshDistortMaterial
-                    color="#D8B4FE"
-                    emissive="#A855F7"
-                    emissiveIntensity={1.5}
-                    speed={1.5}
-                    distort={0.3}
+                    color="#8b5cf6"
+                    emissive="#3b82f6"
+                    emissiveIntensity={2}
+                    speed={2}
+                    distort={0.4}
                     radius={1}
                 />
             </Sphere>
@@ -29,11 +29,11 @@ function Orb() {
             {/* Outer Glow */}
             <Sphere args={[1.3, 64, 64]}>
                 <meshStandardMaterial
-                    color="#C084FC"
+                    color="#4f46e5"
                     transparent
-                    opacity={0.05}
-                    emissive="#D8B4FE"
-                    emissiveIntensity={0.5}
+                    opacity={0.1}
+                    emissive="#8b5cf6"
+                    emissiveIntensity={1}
                 />
             </Sphere>
 
@@ -47,7 +47,7 @@ function Orb() {
 
 function Ring({ index }) {
     const ref = useRef();
-    const speed = useMemo(() => 0.1 + Math.random() * 0.3, []);
+    const speed = useMemo(() => 0.2 + Math.random() * 0.5, []);
     const axis = useMemo(() => new THREE.Vector3(
         Math.random() - 0.5,
         Math.random() - 0.5,
@@ -55,26 +55,28 @@ function Ring({ index }) {
     ).normalize(), []);
 
     const color = useMemo(() => {
-        const colors = ['#D8B4FE', '#A855F7', '#C084FC', '#818CF8'];
+        const colors = ['#8b5cf6', '#3b82f6', '#0ea5e9', '#6366f1'];
         return colors[index % colors.length];
     }, [index]);
 
-    const radius = useMemo(() => 1.4 + Math.random() * 0.6, []);
-    const tube = useMemo(() => 0.005 + Math.random() * 0.01, []);
+    const radius = useMemo(() => 1.5 + Math.random() * 0.8, []);
+    const tube = useMemo(() => 0.01 + Math.random() * 0.02, []);
 
     useFrame((state) => {
-        ref.current.rotateOnAxis(axis, 0.015);
+        const t = state.clock.getElapsedTime() * speed;
+        ref.current.rotateOnAxis(axis, 0.02);
+        ref.current.scale.setScalar(1 + Math.sin(t) * 0.05);
     });
 
     return (
         <mesh ref={ref}>
-            <torusGeometry args={[radius, tube, 12, 120]} />
+            <torusGeometry args={[radius, tube, 16, 100]} />
             <meshStandardMaterial
                 color={color}
                 emissive={color}
-                emissiveIntensity={3}
+                emissiveIntensity={4}
                 transparent
-                opacity={0.6}
+                opacity={0.8}
             />
         </mesh>
     );

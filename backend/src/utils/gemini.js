@@ -5,7 +5,7 @@ dotenv.config();
 
 export const generateGeminiResponse = async (prompt) => {
     const apiKey = process.env.GEMINI_API_KEY;
-    const model = "gemini-2.5-flash"; // Updated to 2.5-flash as verified to have quota
+    const model = "gemini-2.5-flash"; // Confirmed available and working model
 
     if (!apiKey) {
         console.error("GEMINI_API_KEY is missing in .env");
@@ -22,6 +22,8 @@ export const generateGeminiResponse = async (prompt) => {
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
             }
         );
+
+        console.log(`[GEMINI] Request sent. Prompt sample: "${prompt.substring(0, 100)}..."`);
 
         const data = await response.json();
 

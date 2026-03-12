@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,138 +6,135 @@
 
 @layer base {
   body {
-    @apply antialiased min-h-screen transition-all duration-700 font-sans;
-    /* Default to dark mode to prevent flash */
-    background-color: #020617;
-    color: #F8FAFC;
-    background-image: radial-gradient(circle at top right, #1E1B4B, #020617 60%);
+    @apply antialiased min-h-screen transition-colors duration-500 font-rounded;
+    background-color: theme('colors.kynaraDark.bg');
+    color: theme('colors.kynaraDark.text');
   }
 
-  body.theme-glass {
-    background-color: #F8FAFC;
-    color: #1E293B;
-    background-image:
-      radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
-      radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
-    background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    /* Lush Purple */
-    background: linear-gradient(to right, #DAE2F8, #D6A4A4);
-    /* Pastel Sunset */
-    background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
-    background-image: linear-gradient(135deg, #E0F2FE 0%, #F5F3FF 50%, #FDF4FF 100%);
+  body.theme-light {
+    background-color: theme('colors.kynaraLight.bg');
+    color: theme('colors.kynaraLight.text');
+    @apply font-sans;
+    /* Use sans-serif for minimal light as requested */
   }
 
   body.theme-dark {
-    background-color: #020617;
-    color: #F8FAFC;
-    background-image: radial-gradient(circle at top right, #1E1B4B, #020617 60%);
+    background-color: theme('colors.kynaraDark.bg');
+    color: theme('colors.kynaraDark.text');
+    @apply font-rounded;
+    /* Use rounded for futuristic dark as requested */
   }
 }
 
 @layer components {
 
-  /* Common Glass Effect */
+  /* Dynamic Glass Panel */
   .glass-panel {
-    @apply backdrop-blur-xl border transition-all duration-500;
-  }
-
-  .theme-glass .glass-panel {
-    @apply bg-white/40 border-white/60 shadow-glass rounded-[32px];
+    @apply backdrop-blur-[20px] border border-white/40 rounded-[2.5rem] transition-all duration-500;
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(126, 87, 194, 0.1);
   }
 
   .theme-dark .glass-panel {
-    @apply bg-[#0F172A]/60 border-white/10 shadow-neon rounded-[32px];
+    @apply border-white/5 backdrop-blur-[30px];
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   }
 
-  /* Futuristic Dark Specifics */
-  .futuristic-border {
-    @apply border border-transparent bg-gradient-to-r from-cyan-500 to-purple-500 bg-clip-border;
+  /* Glass Card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    @apply border border-white/50 rounded-[2rem] p-8 transition-all duration-300;
+    box-shadow: 0 10px 40px rgba(126, 87, 194, 0.08);
   }
 
-  .neon-text-blue {
-    @apply text-cyan-400 drop-shadow-[0_0_8px_rgba(34, 211, 238, 0.8)];
+  .theme-dark .glass-card {
+    background: rgba(255, 255, 255, 0.02);
+    @apply border-white/10;
   }
 
-  .neon-text-purple {
-    @apply text-purple-400 drop-shadow-[0_0_8px_rgba(168, 85, 247, 0.8)];
+  /* Markdown Content Styling */
+  .markdown-content {
+    @apply leading-relaxed;
+    font-size: 0.95rem;
   }
 
-  /* Chat Bubbles */
-  .chat-bubble {
-    @apply px-6 py-4 rounded-[24px] max-w-[85%] transition-all duration-300;
+  .markdown-content p {
+    @apply mb-5;
   }
 
-  .theme-dark .user-bubble {
-    @apply bg-gradient-to-br from-cyan-600 to-blue-700 text-white rounded-tr-none shadow-neon;
+  .markdown-content ul,
+  .markdown-content ol {
+    @apply mb-5 ml-6 space-y-2;
   }
 
-  .theme-dark .ai-bubble {
-    @apply bg-[#1E293B]/80 border border-white/10 text-slate-100 rounded-tl-none backdrop-blur-md;
+  .markdown-content ul {
+    @apply list-disc;
   }
 
-  .theme-glass .user-bubble {
-    @apply bg-white/60 backdrop-blur-md border border-white/80 text-slate-800 rounded-tr-none shadow-glass;
+  .markdown-content ol {
+    @apply list-decimal;
   }
 
-  .theme-glass .ai-bubble {
-    @apply bg-white/30 backdrop-blur-md border border-white/40 text-slate-700 rounded-tl-none;
+  .markdown-content li {
+    @apply pl-1;
   }
 
-  /* Buttons */
-  .btn-premium {
-    @apply relative overflow-hidden px-8 py-4 rounded-[20px] font-black uppercase tracking-widest text-sm transition-all duration-500 hover:scale-105 active:scale-95;
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3 {
+    @apply font-bold mb-4 mt-8 tracking-tight;
   }
 
-  .theme-dark .btn-premium {
-    @apply bg-cyan-500 text-slate-950 shadow-neon;
+  .markdown-content h1 {
+    @apply text-2xl;
   }
 
-  .theme-glass .btn-premium {
-    @apply bg-white/60 backdrop-blur-lg text-slate-800 border border-white/80 shadow-glass;
+  .markdown-content h2 {
+    @apply text-xl;
   }
 
-  /* Particles / Blobs */
-  .bg-blob {
-    @apply absolute w-96 h-96 rounded-full blur-[120px] opacity-30 animate-float pointer-events-none;
+  .markdown-content h3 {
+    @apply text-lg;
+  }
+
+  .markdown-content strong {
+    @apply font-bold text-inherit;
+    opacity: 0.95;
+  }
+
+  .markdown-content code {
+    @apply px-1.5 py-0.5 rounded-md font-mono text-sm;
+    background: rgba(126, 87, 194, 0.1);
+  }
+
+  .theme-dark .markdown-content code {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .markdown-content pre {
+    @apply my-6 p-4 rounded-2xl overflow-x-auto font-mono text-sm border;
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(126, 87, 194, 0.1);
+  }
+
+  .theme-dark .markdown-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .markdown-content hr {
+    @apply my-8 border-0 border-t;
+    border-color: currentColor;
+    opacity: 0.1;
   }
 }
 
-/* Animations */
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-30px) scale(1.1);
-  }
+.bot-glow {
+  filter: drop-shadow(0 0 20px rgba(224, 64, 251, 0.3));
 }
 
-.animate-float {
-  animation: float 8s ease-in-out infinite;
-}
-
-@keyframes pulse-neon {
-
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 40px rgba(34, 211, 238, 0.8), 0 0 60px rgba(168, 85, 247, 0.3);
-  }
-}
-
-.shadow-neon {
-  animation: pulse-neon 4s infinite;
-}
-
-/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -147,18 +144,10 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-400/20 rounded-full hover:bg-slate-400/40 transition-colors;
+  background: rgba(126, 87, 194, 0.2);
+  border-radius: 10px;
 }
 
-/* Markdown Rendering */
-.markdown-content {
-  @apply leading-relaxed prose prose-slate dark:prose-invert max-w-none;
-}
-
-.markdown-content pre {
-  @apply bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 my-6 overflow-hidden;
-}
-
-.markdown-content code {
-  @apply font-mono text-cyan-400 dark:text-cyan-300 bg-cyan-400/10 px-1.5 py-0.5 rounded;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 87, 194, 0.4);
 }

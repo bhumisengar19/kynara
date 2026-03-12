@@ -59,6 +59,12 @@ export const ChatProvider = ({ children }) => {
                 status: err.response?.status,
                 data: err.response?.data
             });
+            // Fallback for UI if it's a network error
+            if (!err.response) {
+                alert("Network error: Please check if the backend server is running on port 5005.");
+            } else if (err.response.status === 401) {
+                alert("Session expired. Please log in again.");
+            }
             return null;
         }
     };

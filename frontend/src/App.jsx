@@ -4,23 +4,26 @@ import Login from "./Login";
 import Sidebar from "./components/Sidebar";
 import Background3D from "./components/Background3D";
 
-/* Pages */
 import ChatPage from "./pages/ChatPage";
 import ProfilePage from "./pages/ProfilePage";
 import { SidebarDemo } from "./components/SidebarDemo";
+import NightSkyBackground from "./components/NightSkyBackground";
+import BotanicalBackground from "./components/BotanicalBackground";
+import { useTheme } from "./context/ThemeContext";
 
 export default function App() {
   const { user, loading } = useAuth();
+  const { theme } = useTheme();
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#0F0B1F] text-white">Loading...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-kynaraDark-bg text-white font-rounded">Loading...</div>;
 
   if (!user) {
     return <Login />;
   }
 
   return (
-    <div className="h-screen flex font-sans overflow-hidden bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-300 relative">
-      <Background3D />
+    <div className={`h-screen flex font-rounded overflow-hidden transition-colors duration-500 relative ${theme === 'dark' ? 'bg-kynaraDark-bg text-kynaraDark-text' : 'bg-kynaraLight-bg text-kynaraLight-text'}`}>
+      {theme === 'dark' ? <NightSkyBackground /> : <BotanicalBackground />}
       <Sidebar />
       <div className="flex-1 flex overflow-hidden relative h-full">
         <Routes>

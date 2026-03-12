@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Send, LogOut, Sparkles, Brain, Zap, MessageSquare, ArrowRight } from "lucide-react";
+import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import api from "../api/axios";
@@ -8,53 +8,65 @@ import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "../components/ThemeToggle";
 import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
-import { SplineSceneBasic } from "../components/SplineSceneDemo";
-import NeuralOrb from "../components/NeuralOrb";
+import { useTheme } from "../context/ThemeContext";
+import { BotScene } from "../components/BotScene";
 
 const PERSONAS = [
-    { id: "balanced", label: "Balanced", icon: Sparkles, color: "from-blue-500 to-indigo-500" },
-    { id: "creative", label: "Creative", icon: Zap, color: "from-purple-500 to-pink-500" },
-    { id: "technical", label: "Technical", icon: Brain, color: "from-emerald-500 to-teal-500" },
+    { id: "balanced", label: "Balanced", icon: Sparkles, color: "from-indigo-400 to-violet-400" },
+    { id: "creative", label: "Creative", icon: Zap, color: "from-pink-400 to-lavender-400" },
+    { id: "technical", label: "Technical", icon: Brain, color: "from-cyan-400 to-blue-400" },
 ];
-
-const SMART_ACTIONS = [
-    { id: "summarize", label: "Summarize", icon: "📝" },
-    { id: "explain", label: "Explain", icon: "🎓" },
-    { id: "humanize", label: "Humanize", icon: "😊" },
-    { id: "grammar", label: "Grammar", icon: "✨" },
-    { id: "translate", label: "Translate", icon: "🌍" },
-    { id: "regenerate", label: "Regenerate", icon: "🔁" },
-];
-
-const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-};
 
 export default function ChatPage() {
     const { id } = useParams();
+    const { setChats, createChat } = useChatContext();
     const navigate = useNavigate();
-    const { setChats, chats } = useChatContext();
     const { logout, user } = useAuth();
-
-    const createChat = async () => {
-        try {
-            const res = await api.post("/chat/create", { title: "New Conversation" });
-            setChats((prev) => [res.data, ...prev]);
-            navigate(`/c/${res.data._id}`);
-        } catch (err) {
-            console.error("Failed to create chat", err);
-        }
-    };
+    const { theme } = useTheme();
 
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState("online"); // online, thinking, generating
     const [persona, setPersona] = useState(PERSONAS[0]);
 
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
+
+    const [attachments, setAttachments] = useState([]);
+    const [uploading, setUploading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await api.post("/upload", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+            setAttachments(prev => [...prev, {
+                url: res.data.fileUrl,
+                name: file.name,
+                fileType: file.type || 'application/octet-stream'
+            }]);
+        } catch (err) {
+            console.error("Upload failed", err);
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const removeAttachment = (index) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,6 +80,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (!id) return;
         const loadChat = async () => {
+            setMessages([]); // Clear previous messages
             try {
                 const res = await api.get(`/chat/history/${id}`);
                 setMessages(res.data);
@@ -78,44 +91,155 @@ export default function ChatPage() {
         loadChat();
     }, [id]);
 
-    const sendMessage = async (action = null) => {
-        if (!input.trim() && !action) return;
+    const sendMessage = async () => {
+        if (!input.trim() && attachments.length === 0) return;
 
-        const userMessage = { role: "user", content: input };
+        const userMessage = {
+            role: "user",
+            content: input,
+            attachments: attachments
+        };
 
-        // If it's a normal message, add it to UI
-        if (!action) {
-            setMessages((prev) => [...prev, userMessage]);
-            setInput("");
-        }
+        // Optimistically add message to UI
+        setMessages((prev) => [...prev, userMessage]);
+        const currentInput = input;
+        const currentAttachments = [...attachments];
 
+        setInput("");
+        setAttachments([]);
         setLoading(true);
 
         try {
+            setStatus("thinking");
+            // Switch to generating after 2 seconds to simulate phase transition
+            const timer = setTimeout(() => setStatus("generating"), 2000);
+
             const res = await api.post("/chat", {
-                message: action ? (input || "Previous Message") : userMessage.content,
+                message: userMessage.content,
                 chatId: id,
                 persona: persona.id,
-                action: action
+                attachments: currentAttachments
             });
 
+            clearTimeout(timer);
             const { reply, newTitle } = res.data;
             setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
 
             if (newTitle) {
                 setChats(prev => prev.map(c => c._id === id ? { ...c, title: newTitle } : c));
             }
-
-            if (action) setInput(""); // Clear input if action was used
         } catch (err) {
             console.error("Chat Failed", err);
             const errorMsg = err.response?.data?.message || err.message || "Unknown error";
             setMessages((prev) => [...prev, {
                 role: "assistant",
-                content: `⚠️ **Error**: ${errorMsg}\n\n_If this persists, check your backend logs or API key._`
+                content: `⚠️ **Error**: ${errorMsg}`
             }]);
+            // Restore input on failure
+            setInput(currentInput);
+            setAttachments(currentAttachments);
         } finally {
             setLoading(false);
+            setStatus("online");
+        }
+    };
+
+    // --- Voice Logic ---
+    const handleVoiceInput = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Voice recognition is not supported in this browser.");
+            return;
+        }
+
+        if (isListening) {
+            setIsListening(false);
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setInput(prev => prev + (prev ? ' ' : '') + transcript);
+        };
+
+        recognition.start();
+    };
+
+    const speakResponse = (text) => {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const toggleVoice = () => {
+        setVoiceEnabled(!voiceEnabled);
+        if (voiceEnabled) window.speechSynthesis.cancel();
+    };
+
+    const handleAction = async (action, originalMsg, msgId) => {
+        if (action === 'copy') {
+            navigator.clipboard.writeText(originalMsg);
+            return;
+        }
+
+        if (action === 'regenerate') {
+            setLoading(true);
+            setStatus("thinking");
+            try {
+                const res = await api.post("/chat", {
+                    message: originalMsg,
+                    chatId: id,
+                    action: 'regenerate',
+                    persona: persona.id
+                });
+                const { reply } = res.data;
+                setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+            } catch (err) {
+                console.error("Regeneration failed", err);
+            } finally {
+                setLoading(false);
+                setStatus("online");
+            }
+            return;
+        }
+
+        if (action === 'save') {
+            const element = document.createElement("a");
+            const file = new Blob([originalMsg], { type: 'text/plain' });
+            element.href = URL.createObjectURL(file);
+            element.download = `kynara-response-${Date.now()}.txt`;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            return;
+        }
+
+        if (action === 'share') {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Kynara AI Response',
+                    text: originalMsg,
+                    url: window.location.href,
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert("Chat link copied to clipboard!");
+            }
+            return;
+        }
+
+        if (action === 'speak') {
+            speakResponse(originalMsg);
+            return;
         }
     };
 
@@ -124,111 +248,69 @@ export default function ChatPage() {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-screen transition-all duration-700"
+                className="flex-1 flex flex-col relative overflow-hidden"
             >
-                {/* Visual Background Blobs */}
-                <div className="bg-blob -top-20 -left-20 bg-cyan-500/20" />
-                <div className="bg-blob -bottom-20 -right-20 bg-purple-500/20" />
-
-                {/* Header Actions */}
-                <div className="w-full max-w-7xl mx-auto flex justify-end items-center p-8 relative z-50 gap-4">
+                <div className="absolute top-8 right-8 z-50">
                     <ThemeToggle />
-                    <button
-                        onClick={logout}
-                        className="p-3 glass-panel hover:bg-white/10 text-slate-400 hover:text-red-500 transition-colors"
-                        title="Logout"
-                    >
-                        <LogOut size={20} />
-                    </button>
                 </div>
 
-                {/* Hero Section */}
-                <div className="flex-1 flex flex-col lg:flex-row items-center justify-center max-w-7xl mx-auto w-full px-8 pb-32 gap-12 lg:gap-24 relative z-10">
-                    {/* Left Side: Content */}
-                    <motion.div
-                        initial={{ x: -100, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.2, duration: 1, ease: "easeOut" }}
-                        className="flex-1 text-center lg:text-left space-y-8"
-                    >
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-bold tracking-widest uppercase text-cyan-400 theme-glass:text-purple-600 opacity-80">
-                                {getGreeting()}, Bhumi
-                            </h2>
-                            <h1 className="text-6xl lg:text-8xl font-black font-display tracking-tighter leading-[0.9] text-slate-100 theme-glass:text-slate-900">
-                                Next Generation <br />
-                                <span className="theme-dark:neon-text-blue theme-glass:text-purple-600">AI Assistant.</span>
-                            </h1>
-                            <p className="text-xl lg:text-2xl font-medium text-slate-400 theme-glass:text-slate-600 max-w-xl">
-                                Smarter. Faster. More Human. <br />
-                                <span className="text-sm italic opacity-50">Initialized & Ready.</span>
-                            </p>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-5 pt-4 justify-center lg:justify-start">
-                            <button
-                                onClick={() => createChat()}
-                                className="btn-premium flex items-center justify-center gap-3 px-12 group"
-                            >
-                                Start Chatting
-                                <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
-                            </button>
-                            <button
-                                onClick={() => navigate('/history')}
-                                className="px-12 py-4 rounded-[20px] font-bold text-slate-400 border border-slate-700 hover:bg-slate-800/50 transition-all theme-glass:border-slate-200 theme-glass:text-slate-600"
-                            >
-                                View Nodes
-                            </button>
-                        </div>
-                    </motion.div>
-
-                    {/* Right Side: Robot Image */}
-                    <motion.div
-                        initial={{ x: 100, opacity: 0, scale: 0.8 }}
-                        animate={{ x: 0, opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.4, duration: 1.2, ease: "easeOut" }}
-                        className="flex-1 relative group"
-                    >
-                        <div className="absolute inset-0 bg-cyan-500/20 blur-[100px] rounded-full scale-75 group-hover:scale-100 transition-transform duration-1000" />
-                        <img
-                            src="/robot.png"
-                            alt="AI Robot"
-                            className="w-full h-auto max-w-2xl mx-auto relative z-10 animate-float drop-shadow-[0_0_50px_rgba(34,211,238,0.2)]"
-                        />
-                        {/* Glow reflection beneath robot */}
-                        <div className="w-[60%] h-8 bg-black/40 blur-2xl mx-auto rounded-full mt-[-20px] opacity-50" />
-                    </motion.div>
+                <div className="flex-1 flex flex-col items-center justify-center p-4">
+                    <div className="w-full max-w-4xl text-center">
+                        <BotScene onInitialize={async () => {
+                            const newId = await createChat();
+                            if (newId) navigate(`/c/${newId}`);
+                        }} />
+                    </div>
                 </div>
             </motion.div>
         );
     }
 
     return (
-        <div className="flex-1 flex flex-col relative z-20 overflow-hidden h-full transition-all duration-700">
-            {/* BACKGROUND DECOR */}
-            <div className="bg-blob -top-20 -left-20 bg-purple-500/10" />
-            <div className="bg-blob top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-cyan-500/5" />
-
+        <div className={`flex-1 flex flex-col relative z-20 overflow-hidden h-full transition-all duration-500`}>
             {/* HEADER */}
-            <div className="flex justify-between items-center px-10 py-6 glass-panel border-b border-t-0 border-x-0 rounded-none sticky top-0 z-50">
-                <div className="flex items-center gap-4 group">
-                    <div className="w-12 h-12 rounded-[18px] theme-dark:bg-cyan-500/10 theme-glass:bg-purple-500/10 flex items-center justify-center border border-white/5 group-hover:rotate-12 transition-transform">
-                        <Brain className="theme-dark:text-cyan-400 theme-glass:text-purple-600" size={24} />
+            <div className={`flex justify-between items-center px-8 py-4 backdrop-blur-xl sticky top-0 z-30 border-b ${theme === 'dark'
+                ? 'bg-kynaraDark-navy/30 border-white/5 shadow-neon'
+                : 'bg-kynaraLight-bg/40 border-kynaraLight-lavender shadow-sm'
+                }`}>
+                <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-2xl bg-gradient-to-br ${persona.color} shadow-lg shadow-indigo-500/20`}>
+                        <persona.icon className="text-white" size={20} />
                     </div>
                     <div className="flex flex-col">
-                        <h2 className="text-xl font-display font-black text-slate-100 theme-glass:text-slate-900 tracking-tight leading-none mb-1">Neural Core</h2>
+                        <div className="flex items-center gap-1.5">
+                            <h2 className={`text-base font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>Kynara AI</h2>
+                        </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Session Active</span>
+                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse transition-colors duration-500 ${status === 'online' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
+                                status === 'thinking' ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' :
+                                    'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]'
+                                }`}></span>
+                            <span className={`text-[10px] opacity-70 font-semibold tracking-wide uppercase ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
+                                {status === 'online' ? 'Online' :
+                                    status === 'thinking' ? 'Thinking' :
+                                        'Generating response'}
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={toggleVoice}
+                        className={`p-2.5 rounded-xl transition-all ${voiceEnabled
+                            ? (theme === 'dark' ? 'text-kynaraDark-lavender bg-white/5' : 'text-kynaraLight-pink bg-black/5')
+                            : 'opacity-40 hover:opacity-100'
+                            }`}
+                        title={voiceEnabled ? "Voice response ON" : "Voice response OFF"}
+                    >
+                        {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                    </button>
                     <ThemeToggle />
                     <button
                         onClick={logout}
-                        className="p-3 rounded-[16px] glass-panel hover:bg-red-500/10 text-slate-400 hover:text-red-500 border-none transition-all"
+                        className="p-2.5 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-colors opacity-70 hover:opacity-100"
+                        title="Logout"
                     >
                         <LogOut size={20} />
                     </button>
@@ -236,82 +318,230 @@ export default function ChatPage() {
             </div>
 
             {/* MESSAGES */}
-            <div className="flex-1 overflow-y-auto px-6 py-10 space-y-12 custom-scrollbar scroll-smooth relative z-10">
+            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 custom-scrollbar scroll-smooth">
                 <AnimatePresence>
                     {messages.map((msg, i) => (
                         <motion.div
                             key={i}
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            initial={theme === 'dark' ? { opacity: 0, scale: 0.9 } : { opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
                             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                         >
-                            <div className={`chat-bubble ${msg.role === "user" ? "user-bubble" : "ai-bubble"}`}>
-                                <div className="markdown-content">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {msg.content}
-                                    </ReactMarkdown>
-                                </div>
-                                {msg.role === "assistant" && (
-                                    <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => navigator.clipboard.writeText(msg.content)}
-                                            className="p-2 glass-panel border-none text-[10px] uppercase font-bold tracking-widest text-slate-400 hover:text-cyan-400"
-                                        >
-                                            Copy Core
-                                        </button>
-                                        <button
-                                            onClick={() => sendMessage('regenerate')}
-                                            className="p-2 glass-panel border-none text-[10px] uppercase font-bold tracking-widest text-slate-400 hover:text-purple-400"
-                                        >
-                                            Regenerate
-                                        </button>
+                            <div
+                                className={`group max-w-[85%] lg:max-w-3xl px-6 py-4 rounded-[2rem] backdrop-blur-2xl relative transition-all duration-500 ${msg.role === "user"
+                                    ? theme === 'dark'
+                                        ? "bg-gradient-to-br from-kynaraDark-midnight to-kynaraDark-indigo text-white rounded-br-none shadow-[0_0_20px_rgba(192,132,252,0.2)] border border-kynaraDark-lavender/30"
+                                        : "bg-kynaraLight-pink/40 text-kynaraLight-text rounded-br-none border border-white shadow-soft"
+                                    : theme === 'dark'
+                                        ? "bg-kynaraDark-card text-kynaraDark-text border border-white/10 rounded-bl-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] prose-invert"
+                                        : "bg-kynaraLight-card text-kynaraLight-text border border-kynaraLight-lavender/30 rounded-bl-none shadow-glass"
+                                    }`}
+                            >
+                                {msg.role === "user" ? (
+                                    <div className="whitespace-pre-wrap font-medium leading-relaxed">{msg.content}</div>
+                                ) : (
+                                    <div className="markdown-content prose prose-sm max-w-none">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {msg.content}
+                                        </ReactMarkdown>
                                     </div>
                                 )}
+
+                                {msg.attachments?.length > 0 && (
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {msg.attachments.map((file, idx) => (
+                                            <a
+                                                key={idx}
+                                                href={file.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`flex items-center gap-2 p-3 rounded-2xl border transition-all hover:scale-[1.02] ${theme === 'dark'
+                                                    ? 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                    : 'bg-white/50 border-kynaraLight-lavender hover:bg-white'
+                                                    }`}
+                                            >
+                                                {file.fileType.startsWith('image/') ? (
+                                                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                                        <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${theme === 'dark' ? 'bg-kynaraDark-lavender/20 text-kynaraDark-lavender' : 'bg-kynaraLight-pink/20 text-kynaraLight-text'
+                                                        }`}>
+                                                        <FileText size={20} />
+                                                    </div>
+                                                )}
+                                                <div className="flex flex-col min-w-0 pr-2">
+                                                    <span className="text-xs font-bold truncate max-w-[120px]">{file.name}</span>
+                                                    <span className="text-[10px] opacity-50 uppercase">{file.fileType.split('/')[1] || 'FILE'}</span>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {msg.role === "assistant" && (
+                                    <div className={`flex items-center gap-1 mt-4 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-kynaraLight-lavender/30'}`}>
+                                        <MessageToolButton
+                                            icon={Copy}
+                                            onClick={() => handleAction('copy', msg.content)}
+                                            label="Copy"
+                                            theme={theme}
+                                        />
+                                        <MessageToolButton
+                                            icon={RefreshCw}
+                                            onClick={() => handleAction('regenerate', messages[i - 1]?.content || msg.content)}
+                                            label="Regenerate"
+                                            theme={theme}
+                                        />
+                                        <div className="w-px h-4 mx-1 opacity-10 bg-current" />
+                                        <MessageToolButton
+                                            icon={ThumbsUp}
+                                            label="Helpful"
+                                            theme={theme}
+                                            toggleable
+                                        />
+                                        <MessageToolButton
+                                            icon={ThumbsDown}
+                                            label="Not helpful"
+                                            theme={theme}
+                                            toggleable
+                                        />
+                                        <div className="w-px h-4 mx-1 opacity-10 bg-current" />
+                                        <MessageToolButton
+                                            icon={Bookmark}
+                                            onClick={() => handleAction('save', msg.content)}
+                                            label="Save"
+                                            theme={theme}
+                                        />
+                                        <MessageToolButton
+                                            icon={Volume2}
+                                            onClick={() => handleAction('speak', msg.content)}
+                                            label="Listen"
+                                            theme={theme}
+                                        />
+                                        <MessageToolButton
+                                            icon={Share2}
+                                            onClick={() => handleAction('share', msg.content)}
+                                            label="Share"
+                                            theme={theme}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className={`absolute -bottom-6 text-[10px] opacity-0 group-hover:opacity-40 transition-opacity ${msg.role === "user" ? "right-0" : "left-0"} ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
+                                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
                             </div>
                         </motion.div>
                     ))}
-                    {loading && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                            <div className="ai-bubble px-8 py-5 flex items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 opacity-50 mr-2">Thinking</span>
-                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" />
-                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:200ms]" />
-                                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:400ms]" />
-                            </div>
-                        </motion.div>
-                    )}
-                    <div ref={messagesEndRef} />
                 </AnimatePresence>
+
+                {loading && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex justify-start"
+                    >
+                        <div className={`px-8 py-5 rounded-[2rem] rounded-bl-none flex gap-1.5 items-center backdrop-blur-xl ${theme === 'dark' ? 'bg-kynaraDark-indigo/40 border border-white/5' : 'bg-kynaraLight-lavender/30 border border-white'
+                            }`}>
+                            {theme === 'dark' ? (
+                                <>
+                                    <span className="w-1.5 h-1.5 bg-kynaraDark-lavender rounded-full animate-twinkle" style={{ animationDelay: '0ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-kynaraDark-lavender rounded-full animate-twinkle" style={{ animationDelay: '200ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-kynaraDark-lavender rounded-full animate-twinkle" style={{ animationDelay: '400ms' }}></span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="w-2 h-2 bg-kynaraLight-mint rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                    <span className="w-2 h-2 bg-kynaraLight-pink rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                    <span className="w-2 h-2 bg-kynaraLight-lavender rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                </>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+                <div ref={messagesEndRef} />
             </div>
 
             {/* INPUT AREA */}
-            <div className="p-8 pb-12 flex flex-col items-center relative z-20">
-                {/* Prompt Suggestions / Smart Actions */}
-                <div className="w-full max-w-4xl flex gap-3 mb-6 overflow-x-auto pb-3 custom-scrollbar">
-                    {SMART_ACTIONS.map(act => (
-                        <button
-                            key={act.id}
-                            onClick={() => sendMessage(act.id)}
-                            disabled={loading}
-                            className={`flex items-center gap-2 px-5 py-2.5 glass-panel border-white/5 rounded-2xl whitespace-nowrap text-xs font-bold text-slate-300 hover:border-cyan-500/50 hover:text-cyan-400 transition-all disabled:opacity-30`}
-                        >
-                            <span>{act.icon}</span>
-                            {act.label}
-                        </button>
-                    ))}
-                    <div className="flex items-center gap-3 ml-4 border-l border-white/10 pl-6">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Humanize</span>
-                        <div className="w-10 h-5 bg-slate-800 rounded-full relative p-1 cursor-pointer hover:bg-slate-700 transition-colors">
-                            <div className="w-3 h-3 bg-cyan-400 rounded-full" />
-                        </div>
-                    </div>
-                </div>
+            <div className="p-6 md:p-8 pt-0 bg-transparent">
+                <div className="max-w-5xl mx-auto container relative">
+                    {/* Attachment Previews */}
+                    <AnimatePresence>
+                        {attachments.length > 0 && (
+                            <motion.div
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: 20, opacity: 0 }}
+                                className="flex flex-wrap gap-2 mb-4"
+                            >
+                                {attachments.map((file, i) => (
+                                    <div
+                                        key={i}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border group relative ${theme === 'dark' ? 'bg-kynaraDark-card border-white/10' : 'bg-white/80 border-kynaraLight-lavender'
+                                            }`}
+                                    >
+                                        {file.fileType.startsWith('image/') ? (
+                                            <ImageIcon size={14} className="text-kynaraLight-pink" />
+                                        ) : (
+                                            <FileText size={14} className="text-kynaraLight-lavender" />
+                                        )}
+                                        <span className="text-xs font-medium truncate max-w-[100px]">{file.name}</span>
+                                        <button
+                                            onClick={() => removeAttachment(i)}
+                                            className="ml-1 opacity-40 hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                <div className="w-full max-w-5xl relative group">
-                    <div className="absolute inset-x-0 -top-20 h-40 bg-gradient-to-t from-[#020617] to-transparent theme-glass:from-white theme-glass:to-transparent pointer-events-none" />
-                    <div className="relative flex items-end gap-3 glass-panel border-white/10 p-5 shadow-2xl focus-within:ring-1 focus-within:ring-cyan-500/50 group-hover:border-white/20">
+                    <div className="relative flex items-center group">
+                        {theme === 'dark' && (
+                            <div className="absolute inset-0 bg-kynaraDark-lavender/10 blur-2xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
+                        )}
+
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            className="hidden"
+                            accept="image/*,.pdf,.doc,.docx,.csv,.txt"
+                        />
+
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className={`absolute left-4 p-2 rounded-xl transition-all z-50 cursor-pointer ${theme === 'dark'
+                                ? 'text-white/40 hover:text-kynaraDark-lavender hover:bg-white/5'
+                                : 'text-kynaraLight-text/40 hover:text-kynaraLight-pink hover:bg-black/5'
+                                } ${uploading ? 'animate-pulse' : ''}`}
+                        >
+                            <Paperclip size={20} />
+                        </button>
+
+                        <button
+                            onClick={handleVoiceInput}
+                            className={`absolute left-14 p-2 rounded-xl transition-all z-50 cursor-pointer ${isListening
+                                ? 'text-red-500 bg-red-500/10 animate-pulse'
+                                : (theme === 'dark' ? 'text-white/40 hover:text-kynaraDark-lavender hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-kynaraLight-pink hover:bg-black/5')
+                                }`}
+                            title="Voice Input"
+                        >
+                            <Mic size={20} />
+                        </button>
+
                         <textarea
                             rows="1"
+                            className={`w-full backdrop-blur-2xl border rounded-3xl px-7 py-5 pl-24 pr-16 focus:outline-none transition-all resize-none shadow-2xl placeholder:opacity-40 font-medium ${theme === 'dark'
+                                ? 'bg-kynaraDark-navy/60 border-white/10 text-white focus:ring-1 focus:ring-kynaraDark-lavender/50'
+                                : 'bg-kynaraLight-card text-kynaraLight-text border-kynaraLight-lavender focus:ring-2 focus:ring-kynaraLight-pink/30'
+                                }`}
+                            placeholder={`Ask ${persona.label} AI...`}
                             value={input}
                             onChange={(e) => {
                                 setInput(e.target.value);
@@ -324,20 +554,57 @@ export default function ChatPage() {
                                     sendMessage();
                                 }
                             }}
-                            className="flex-1 bg-transparent border-none focus:ring-0 text-slate-100 theme-glass:text-slate-800 pt-3 px-6 resize-none leading-relaxed text-base font-medium placeholder:text-slate-500 custom-scrollbar max-h-48"
-                            placeholder="How can Kynara assist you today?"
                         />
                         <button
-                            onClick={() => sendMessage()}
-                            disabled={!input.trim() || loading}
-                            className="p-5 btn-premium !py-0 !h-14 !rounded-2xl group/btn"
+                            onClick={sendMessage}
+                            disabled={(!input.trim() && attachments.length === 0) || loading || uploading}
+                            className={`absolute right-4 p-3.5 rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 shadow-xl z-50 cursor-pointer ${theme === 'dark'
+                                ? 'bg-gradient-to-r from-kynaraDark-lavender to-kynaraDark-violet text-white shadow-kynaraDark-lavender/20'
+                                : 'bg-gradient-to-r from-kynaraLight-pink to-kynaraLight-lavender text-kynaraLight-text shadow-kynaraLight-pink/20'
+                                }`}
                         >
-                            <Send size={24} className="relative z-10" />
+                            <Send size={20} />
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
+    );
+}
+
+function MessageToolButton({ icon: Icon, onClick, label, theme, toggleable }) {
+    const [clicked, setClicked] = useState(false);
+    const [active, setActive] = useState(false);
+
+    const handleClick = (e) => {
+        if (toggleable) {
+            setActive(!active);
+        } else {
+            setClicked(true);
+            setTimeout(() => setClicked(false), 2000);
+        }
+        if (onClick) onClick(e);
+    };
+
+    return (
+        <button
+            onClick={handleClick}
+            className={`p-2 rounded-lg transition-all flex items-center gap-2 group/tool ${active
+                ? (theme === 'dark' ? 'bg-kynaraDark-lavender/20 text-kynaraDark-lavender' : 'bg-kynaraLight-pink/20 text-kynaraLight-text')
+                : (theme === 'dark'
+                    ? 'hover:bg-white/5 text-white/40 hover:text-kynaraDark-lavender'
+                    : 'hover:bg-black/5 text-kynaraLight-text/40 hover:text-kynaraLight-pink')
+                }`}
+            title={label}
+        >
+            {clicked && label === "Copy" ? <Check size={14} className="text-green-400" /> : <Icon size={14} className={`${active ? 'fill-current' : 'group-hover/tool:scale-110'} transition-transform`} />}
+            <span className="text-[10px] font-bold uppercase tracking-wider hidden group-hover/tool:block animate-in fade-in slide-in-from-left-1">
+                {clicked && label === "Copy" ? "Copied!" :
+                    clicked && label === "Save" ? "Saved!" :
+                        clicked && label === "Share" ? "Shared!" :
+                            label}
+            </span>
+        </button>
     );
 }
 

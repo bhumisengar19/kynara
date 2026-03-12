@@ -1,6 +1,7 @@
 import Chat from "../models/Chat.js";
 import { generateGeminiResponse } from "../utils/gemini.js";
 import { PROMPTS } from "../utils/prompts.js";
+import { extractTextFromFile } from "../utils/fileExtractor.js";
 
 const formatHistory = (messages) => {
   return messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n');
@@ -161,16 +162,14 @@ export const getChatHistory = async (req, res) => {
 ========================================
 */
 export const sendMessage = async (req, res) => {
-  console.log("Received sendMessage request:", req.body);
   try {
-    const { message, chatId, action, targetLanguage } = req.body;
+    const { message, chatId, action, targetLanguage, attachments } = req.body;
 
-    if ((!message && !action) || !chatId) {
-      console.warn("Missing message or chatId");
+    if ((!message && !action && (!attachments || attachments.length === 0)) || !chatId) {
+      console.warn("Missing message, action, or attachments; or missing chatId");
       return res.status(400).json({ message: "Content and chatId required" });
     }
 
-    console.log(`Finding chat ${chatId} for user ${req.user._id}...`);
     const chat = await Chat.findOne({
       _id: chatId,
       user: req.user._id,
@@ -218,11 +217,39 @@ export const sendMessage = async (req, res) => {
       chat.messages.push({
         role: "user",
         content: message,
+        attachments: attachments || [],
       });
 
       // Get conversation history (excluding the message we just added)
       const history = formatHistory(chat.messages.slice(0, -1));
-      prompt = PROMPTS.MEMORY_CHAT(history, message);
+      let contextInfo = "";
+      console.log(`[CHAT] Processing message from user. Input length: ${message?.length || 0}. Attachments: ${attachments?.length || 0}`);
+
+      if (attachments?.length > 0) {
+        // Extract text context from files in parallel
+        console.log("[CHAT] Extracting text from attachments...");
+        const extractionPromises = attachments.map(async (file) => {
+          console.log(`[CHAT] Attempting extraction for: ${file.name} (${file.url})`);
+          const text = await extractTextFromFile(file.url);
+          if (text) {
+            console.log(`[CHAT] Extracted ${text.length} chars from ${file.name}`);
+            return `\n--- Content from ${file.name} ---\n${text}\n--- End of File content ---\n`;
+          } else {
+            console.warn(`[CHAT] No text extracted from ${file.name}`);
+            return "";
+          }
+        });
+        const extractedTexts = await Promise.all(extractionPromises);
+        contextInfo = extractedTexts.join("\n").trim();
+      }
+
+      if (contextInfo) {
+        console.log("[CHAT] Context successfully added to prompt.");
+      } else if (attachments?.length > 0) {
+        console.error("[CHAT] Attachments present but context is EMPTY!");
+      }
+
+      prompt = PROMPTS.MEMORY_CHAT(history, (contextInfo ? `CONTEXT FROM ATTACHED FILES:\n${contextInfo}\n\nUSER MESSAGE: ` : "") + (message || ""));
     }
 
     // Parallel Execution: Generate Response + Title (if first message and not an action)
