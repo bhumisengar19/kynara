@@ -10,6 +10,7 @@ import {
   getArchivedChats,
   archiveChat,
   unarchiveChat,
+  renameChat,
   deleteChat,
 } from "../controllers/chatController.js";
 
@@ -22,6 +23,7 @@ router.get("/history/:chatId", protect, getChatHistory);
 router.post("/new", protect, createNewChat);
 router.put("/archive/:chatId", protect, archiveChat);
 router.put("/unarchive/:chatId", protect, unarchiveChat);
+router.put("/rename/:chatId", protect, renameChat);
 router.delete("/:chatId", protect, deleteChat);
 
 export default router;

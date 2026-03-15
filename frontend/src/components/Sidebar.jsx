@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate, useLocation, Link } from "react-router-dom";
 import {
     Plus, MessageSquare, Archive, Trash2, RotateCcw,
-    FolderArchive, User, Search, LogOut
+    FolderArchive, User, Search, LogOut, Edit2, Check, X
 } from "lucide-react";
 import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
@@ -13,7 +13,7 @@ import { useTheme } from "../context/ThemeContext";
 export default function Sidebar() {
     const {
         chats, archivedChats, showArchived, setShowArchived,
-        createChat, archiveChat, unarchiveChat, deleteChat
+        createChat, archiveChat, unarchiveChat, renameChat, deleteChat
     } = useChatContext();
     const { user, logout } = useAuth();
     const { theme } = useTheme();
@@ -22,10 +22,34 @@ export default function Sidebar() {
     const id = location.pathname.startsWith('/c/') ? location.pathname.split('/')[2] : null;
 
     const [searchTerm, setSearchTerm] = useState("");
+    const [editingId, setEditingId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
 
     const handleCreateChat = async () => {
         const newId = await createChat();
         if (newId) navigate(`/c/${newId}`);
+    };
+
+    const handleRename = (e, chatId, currentTitle) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingId(chatId);
+        setEditTitle(currentTitle);
+    };
+
+    const saveRename = async (e, chatId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (editTitle.trim()) {
+            await renameChat(chatId, editTitle);
+        }
+        setEditingId(null);
+    };
+
+    const cancelRename = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingId(null);
     };
 
     const filteredChats = (showArchived ? archivedChats : chats).filter(chat =>
@@ -72,6 +96,21 @@ export default function Sidebar() {
                     />
                     <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`} />
                 </div>
+                <div className="flex items-center justify-between mb-2 px-1">
+                    <h3 className={`text-[10px] font-bold uppercase tracking-widest opacity-40 ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
+                        {showArchived ? "Archived Chats" : "Recent Conversations"}
+                    </h3>
+                    <button
+                        onClick={() => setShowArchived(!showArchived)}
+                        className={`p-1.5 rounded-lg transition-all hover:scale-110 ${showArchived
+                            ? 'bg-amber-500/20 text-amber-500'
+                            : 'hover:bg-white/5 opacity-40 hover:opacity-100'
+                            }`}
+                        title={showArchived ? "Show Active Chats" : "Show Archived Chats"}
+                    >
+                        <FolderArchive size={14} />
+                    </button>
+                </div>
             </div>
 
             {/* CHAT LIST */}
@@ -79,7 +118,7 @@ export default function Sidebar() {
                 {filteredChats.map((chat) => (
                     <div
                         key={chat._id}
-                        onClick={() => navigate(`/c/${chat._id}`)}
+                        onClick={() => !editingId && navigate(`/c/${chat._id}`)}
                         className={`p-3 rounded-2xl cursor-pointer flex items-center gap-3 transition-all duration-300 group relative ${id === chat._id
                             ? theme === 'dark'
                                 ? "bg-white/10 border border-white/10 shadow-lg text-white"
@@ -90,14 +129,41 @@ export default function Sidebar() {
                             }`}
                     >
                         <MessageSquare size={18} className="opacity-70 group-hover:opacity-100 shrink-0" />
-                        <span className="truncate font-medium flex-1 pr-14 text-sm">
-                            {chat.title}
-                        </span>
 
-                        <div className="absolute right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => archiveChat(chat._id)} className="p-1.5 hover:bg-amber-500/20 text-amber-400 rounded-lg"><Archive size={14} /></button>
-                            <button onClick={() => deleteChat(chat._id)} className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg"><Trash2 size={14} /></button>
-                        </div>
+                        {editingId === chat._id ? (
+                            <div className="flex-1 flex gap-1 items-center" onClick={e => e.stopPropagation()}>
+                                <input
+                                    autoFocus
+                                    className={`flex-1 bg-transparent border-none outline-none text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveRename(e, chat._id);
+                                        if (e.key === 'Escape') cancelRename(e);
+                                    }}
+                                />
+                                <button onClick={(e) => saveRename(e, chat._id)} className="p-1 hover:text-green-400"><Check size={14} /></button>
+                                <button onClick={cancelRename} className="p-1 hover:text-red-400"><X size={14} /></button>
+                            </div>
+                        ) : (
+                            <>
+                                <span className="truncate font-medium flex-1 pr-14 text-sm">
+                                    {chat.title}
+                                </span>
+
+                                <div className="absolute right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={(e) => handleRename(e, chat._id, chat.title)} className="p-1.5 hover:bg-indigo-500/20 text-indigo-400 rounded-lg" title="Rename"><Edit2 size={14} /></button>
+
+                                    {showArchived ? (
+                                        <button onClick={() => unarchiveChat(chat._id)} className="p-1.5 hover:bg-green-500/20 text-green-400 rounded-lg" title="Restore"><RotateCcw size={14} /></button>
+                                    ) : (
+                                        <button onClick={() => archiveChat(chat._id)} className="p-1.5 hover:bg-amber-500/20 text-amber-400 rounded-lg" title="Archive"><Archive size={14} /></button>
+                                    )}
+
+                                    <button onClick={() => deleteChat(chat._id)} className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg" title="Delete"><Trash2 size={14} /></button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 ))}
             </div>

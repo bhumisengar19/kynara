@@ -100,6 +100,18 @@ export const ChatProvider = ({ children }) => {
         }
     };
 
+    const renameChat = async (chatId, newTitle) => {
+        try {
+            const res = await api.put(`/chat/rename/${chatId}`, { title: newTitle });
+            // Use newTitle explicitly in case backend returns Old document despite {new: true}
+            setChats((prev) => prev.map((c) => (c._id === chatId ? { ...c, title: newTitle } : c)));
+            setArchivedChats((prev) => prev.map((c) => (c._id === chatId ? { ...c, title: newTitle } : c)));
+        } catch (err) {
+            console.error("Rename Failed", err);
+            alert("Failed to rename chat: " + (err.response?.data?.message || err.message));
+        }
+    };
+
     return (
         <ChatContext.Provider
             value={{
@@ -110,6 +122,7 @@ export const ChatProvider = ({ children }) => {
                 createChat,
                 archiveChat,
                 unarchiveChat,
+                renameChat,
                 deleteChat,
                 currentChatId,
                 setCurrentChatId,

@@ -112,6 +112,28 @@ export const unarchiveChat = async (req, res) => {
 
 /*
 ========================================
+        RENAME CHAT
+========================================
+*/
+export const renameChat = async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ message: "Title is required" });
+
+    const chat = await Chat.findOneAndUpdate(
+      { _id: req.params.chatId, user: req.user._id },
+      { title },
+      { new: true }
+    );
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+    res.json({ message: "Chat renamed", chat });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to rename chat" });
+  }
+};
+
+/*
+========================================
         DELETE CHAT (PERMANENT)
 ========================================
 */
@@ -163,7 +185,7 @@ export const getChatHistory = async (req, res) => {
 */
 export const sendMessage = async (req, res) => {
   try {
-    const { message, chatId, action, targetLanguage, attachments } = req.body;
+    const { message, chatId, action, targetLanguage, attachments, deepSearch, conciseMode, persona } = req.body;
 
     if ((!message && !action && (!attachments || attachments.length === 0)) || !chatId) {
       console.warn("Missing message, action, or attachments; or missing chatId");
@@ -249,7 +271,22 @@ export const sendMessage = async (req, res) => {
         console.error("[CHAT] Attachments present but context is EMPTY!");
       }
 
-      prompt = PROMPTS.MEMORY_CHAT(history, (contextInfo ? `CONTEXT FROM ATTACHED FILES:\n${contextInfo}\n\nUSER MESSAGE: ` : "") + (message || ""));
+      let userMsg = (contextInfo ? `CONTEXT FROM ATTACHED FILES:\n${contextInfo}\n\nUSER MESSAGE: ` : "") + (message || "");
+      
+      let systemInstructions = "";
+      if (deepSearch) {
+        systemInstructions = "You must perform a deep, comprehensive and highly detailed analysis thinking step by step, providing exhaustive depth and citing structured reasoning. Ensure the answer is elaborate. Do not mention you are following a system command.";
+      } else if (conciseMode) {
+        systemInstructions = "You MUST provide a direct, single-word or single-sentence answer only. Be extremely concise. Do not explain unless explicitly asked. Do not mention you are following a system command.";
+      }
+      
+      if (persona === 'creative') {
+        systemInstructions += "\nRespond in a highly creative, engaging, playful, and imaginative tone. Use vivid language.";
+      } else if (persona === 'technical') {
+        systemInstructions += "\nRespond in a highly technical, precise, and analytical tone. Focus on accuracy, structure, and professional domain knowledge.";
+      }
+      
+      prompt = PROMPTS.MEMORY_CHAT(history, userMsg, systemInstructions);
     }
 
     // Parallel Execution: Generate Response + Title (if first message and not an action)

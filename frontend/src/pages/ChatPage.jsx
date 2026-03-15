@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX } from "lucide-react";
+import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX, Globe, FastForward } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import api from "../api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "../components/ThemeToggle";
@@ -38,6 +40,8 @@ export default function ChatPage() {
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [voiceEnabled, setVoiceEnabled] = useState(true);
+    const [deepSearch, setDeepSearch] = useState(false);
+    const [conciseMode, setConciseMode] = useState(false);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -118,6 +122,8 @@ export default function ChatPage() {
                 message: userMessage.content,
                 chatId: id,
                 persona: persona.id,
+                deepSearch,
+                conciseMode,
                 attachments: currentAttachments
             });
 
@@ -342,7 +348,29 @@ export default function ChatPage() {
                                     <div className="whitespace-pre-wrap font-medium leading-relaxed">{msg.content}</div>
                                 ) : (
                                     <div className="markdown-content prose prose-sm max-w-none">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        <ReactMarkdown 
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                code({node, inline, className, children, ...props}) {
+                                                    const match = /language-(\w+)/.exec(className || '')
+                                                    return !inline && match ? (
+                                                        <SyntaxHighlighter
+                                                            {...props}
+                                                            style={vscDarkPlus}
+                                                            language={match[1]}
+                                                            PreTag="div"
+                                                            className="rounded-xl my-4 text-sm shadow-xl border border-white/10"
+                                                        >
+                                                            {String(children).replace(/\n$/, '')}
+                                                        </SyntaxHighlighter>
+                                                    ) : (
+                                                        <code {...props} className={className + " bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md text-pink-500 dark:text-pink-300 font-mono"}>
+                                                            {children}
+                                                        </code>
+                                                    )
+                                                }
+                                            }}
+                                        >
                                             {msg.content}
                                         </ReactMarkdown>
                                     </div>
@@ -535,13 +563,35 @@ export default function ChatPage() {
                             <Mic size={20} />
                         </button>
 
+                        <button
+                            onClick={() => { setDeepSearch(!deepSearch); setConciseMode(false); }}
+                            className={`absolute left-24 p-2 rounded-xl transition-all z-50 cursor-pointer ${deepSearch
+                                ? 'text-indigo-500 bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.5)]'
+                                : (theme === 'dark' ? 'text-white/40 hover:text-indigo-400 hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-indigo-500 hover:bg-black/5')
+                                }`}
+                            title={deepSearch ? "Deep Search Enabled" : "Enable Deep Search"}
+                        >
+                            <Globe size={20} className={deepSearch ? 'animate-pulse' : ''} />
+                        </button>
+                        
+                        <button
+                            onClick={() => { setConciseMode(!conciseMode); setDeepSearch(false); }}
+                            className={`absolute left-[8.5rem] p-2 rounded-xl transition-all z-50 cursor-pointer ${conciseMode
+                                ? 'text-yellow-500 bg-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.5)]'
+                                : (theme === 'dark' ? 'text-white/40 hover:text-yellow-400 hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-yellow-500 hover:bg-black/5')
+                                }`}
+                            title={conciseMode ? "Concise Mode Enabled" : "Enable Concise Mode (1-Word/1-Line Answer)"}
+                        >
+                            <FastForward size={20} className={conciseMode ? 'animate-pulse' : ''} />
+                        </button>
+
                         <textarea
                             rows="1"
-                            className={`w-full backdrop-blur-2xl border rounded-3xl px-7 py-5 pl-24 pr-16 focus:outline-none transition-all resize-none shadow-2xl placeholder:opacity-40 font-medium ${theme === 'dark'
+                            className={`w-full backdrop-blur-2xl border rounded-3xl py-5 pl-[11rem] pr-16 focus:outline-none transition-all resize-none shadow-2xl placeholder:opacity-40 font-medium ${theme === 'dark'
                                 ? 'bg-kynaraDark-navy/60 border-white/10 text-white focus:ring-1 focus:ring-kynaraDark-lavender/50'
                                 : 'bg-kynaraLight-card text-kynaraLight-text border-kynaraLight-lavender focus:ring-2 focus:ring-kynaraLight-pink/30'
-                                }`}
-                            placeholder={`Ask ${persona.label} AI...`}
+                                } ${deepSearch ? (theme === 'dark' ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]') : conciseMode ? (theme === 'dark' ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.1)]' : 'border-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.2)]') : ''}  ${status === 'generating' ? 'animate-pulse' : ''}`}
+                            placeholder={conciseMode ? `Fast Answer mode...` : deepSearch ? `Deep Search with ${persona.label}...` : `Ask ${persona.label} AI...`}
                             value={input}
                             onChange={(e) => {
                                 setInput(e.target.value);
