@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX, Globe, FastForward } from "lucide-react";
+import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX, Globe, FastForward, UserCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -12,6 +12,7 @@ import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { BotScene } from "../components/BotScene";
+import FloatAvatarContainer from "../components/FloatAvatarContainer";
 
 const PERSONAS = [
     { id: "balanced", label: "Balanced", icon: Sparkles, color: "from-indigo-400 to-violet-400" },
@@ -42,6 +43,7 @@ export default function ChatPage() {
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [deepSearch, setDeepSearch] = useState(false);
     const [conciseMode, setConciseMode] = useState(false);
+    const [showAvatar, setShowAvatar] = useState(true);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -133,6 +135,11 @@ export default function ChatPage() {
 
             if (newTitle) {
                 setChats(prev => prev.map(c => c._id === id ? { ...c, title: newTitle } : c));
+            }
+            
+            // Trigger Voice Response immediately if enabled
+            if (voiceEnabled) {
+                speakResponse(reply);
             }
         } catch (err) {
             console.error("Chat Failed", err);
@@ -585,9 +592,20 @@ export default function ChatPage() {
                             <FastForward size={20} className={conciseMode ? 'animate-pulse' : ''} />
                         </button>
 
+                        <button
+                            onClick={() => setShowAvatar(!showAvatar)}
+                            className={`absolute left-[11rem] p-2 rounded-xl transition-all z-50 cursor-pointer ${showAvatar
+                                ? 'text-teal-500 bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.5)]'
+                                : (theme === 'dark' ? 'text-white/40 hover:text-teal-400 hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-teal-500 hover:bg-black/5')
+                                }`}
+                            title={showAvatar ? "Hide AI Avatar" : "Show AI Avatar"}
+                        >
+                            <UserCircle size={20} className={showAvatar ? 'animate-pulse' : ''} />
+                        </button>
+
                         <textarea
                             rows="1"
-                            className={`w-full backdrop-blur-2xl border rounded-3xl py-5 pl-[11rem] pr-16 focus:outline-none transition-all resize-none shadow-2xl placeholder:opacity-40 font-medium ${theme === 'dark'
+                            className={`w-full backdrop-blur-2xl border rounded-3xl py-5 pl-[13.5rem] pr-16 focus:outline-none transition-all resize-none shadow-2xl placeholder:opacity-40 font-medium ${theme === 'dark'
                                 ? 'bg-kynaraDark-navy/60 border-white/10 text-white focus:ring-1 focus:ring-kynaraDark-lavender/50'
                                 : 'bg-kynaraLight-card text-kynaraLight-text border-kynaraLight-lavender focus:ring-2 focus:ring-kynaraLight-pink/30'
                                 } ${deepSearch ? (theme === 'dark' ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]') : conciseMode ? (theme === 'dark' ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.1)]' : 'border-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.2)]') : ''}  ${status === 'generating' ? 'animate-pulse' : ''}`}
@@ -618,6 +636,22 @@ export default function ChatPage() {
                     </div>
                 </div>
             </div>
+
+            {/* 3D FLOATING AVATAR */}
+            <AnimatePresence>
+                {showAvatar && (
+                    <FloatAvatarContainer 
+                        isSpeaking={isSpeaking}
+                        isListening={isListening}
+                        status={status}
+                        onVoiceInput={handleVoiceInput}
+                        voiceEnabled={voiceEnabled}
+                        toggleVoice={toggleVoice}
+                        setVisible={setShowAvatar}
+                    />
+                )}
+            </AnimatePresence>
+
         </div >
     );
 }
