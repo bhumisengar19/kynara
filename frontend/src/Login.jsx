@@ -61,77 +61,77 @@ export default function Login() {
   };
 
   return (
-    <div className="h-screen w-full flex items-center justify-center p-4 bg-light-bg dark:bg-dark-bg transition-colors duration-300 relative overflow-hidden">
+    <div className="h-screen w-full flex items-center justify-center p-4 bg-kynaraLight-bg dark:bg-[#0a0a0b] transition-colors duration-500 relative overflow-hidden">
       <Background3D />
 
-      <div className="absolute top-6 right-6 z-50">
+      <div className="absolute top-8 right-8 z-50">
         <ThemeToggle />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-md bg-white/70 dark:bg-dark-secondary/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-8 lg:p-10 border border-white/20 dark:border-white/5 relative z-10 overflow-visible"
+        className="w-full max-w-[420px] bg-white/60 dark:bg-[#101014]/80 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-black/[0.05] dark:border-white/[0.05] relative z-10"
       >
-        <div className="flex flex-col items-center mb-10">
+        <div className="flex flex-col items-center mb-10 text-center">
           <motion.div
-            whileHover={{ rotate: 10, scale: 1.1 }}
-            className="w-20 h-20 bg-gradient-to-br from-accent-purple to-accent-cyan p-1 rounded-3xl shadow-lg mb-6"
+            whileHover={{ scale: 1.05 }}
+            className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] rounded-2xl shadow-lg mb-6"
           >
-            <div className="w-full h-full bg-white dark:bg-dark-secondary rounded-[1.4rem] flex items-center justify-center overflow-hidden p-2">
-              <img src="/logo.png" alt="Kynara Logo" className="w-full h-full object-contain" />
+            <div className="w-full h-full bg-white dark:bg-[#151517] rounded-[15px] flex items-center justify-center">
+              <img src="/logo.png" alt="Kynara Logo" className="w-10 h-10 object-contain drop-shadow-md" />
             </div>
           </motion.div>
-          <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-accent-purple to-accent-cyan">
-            Kynara OS
+          <h1 className="text-[28px] font-bold text-gray-900 dark:text-white tracking-tight mb-2">
+            Welcome to Kynara
           </h1>
-          <p className="text-light-textSecondary dark:text-dark-textSecondary mt-2 text-sm font-bold tracking-widest uppercase opacity-40">
-            {isForgotPassword ? "Recovery Protocol" : isRegister ? "Initialize Identity" : "Neural Authentication"}
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+            {isForgotPassword ? "Enter your email to reset password" : isRegister ? "Create your account to get started" : "Log in to continue your journey"}
           </p>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleAuth(); }} className="space-y-5">
+        <form onSubmit={(e) => { e.preventDefault(); handleAuth(); }} className="space-y-4">
           <AnimatePresence mode="wait">
             {isRegister && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, height: 0, y: -10 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -10 }}
                 className="relative group"
               >
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-purple/50 group-focus-within:text-accent-purple transition-colors" size={18} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                 <input
                   type="text"
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-light-section dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-purple focus:border-accent-purple transition-all text-light-text dark:text-dark-text font-medium"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-600"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Official Name"
+                  placeholder="Full Name"
                 />
               </motion.div>
             )}
           </AnimatePresence>
 
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-purple/50 group-focus-within:text-accent-purple transition-colors" size={18} />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
             <input
               type="email"
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-light-section dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-purple focus:border-accent-purple transition-all text-light-text dark:text-dark-text font-medium"
+              className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-600"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Neural Node Address"
+              placeholder="Email Address"
             />
           </div>
 
           {!isForgotPassword && (
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-purple/50 group-focus-within:text-accent-purple transition-colors" size={18} />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
               <input
                 type="password"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-light-section dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-purple focus:border-accent-purple transition-all text-light-text dark:text-dark-text font-medium"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-600"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Access Keyword"
+                placeholder="Password"
               />
             </div>
           )}
@@ -139,15 +139,15 @@ export default function Login() {
           <AnimatePresence>
             {isRegister && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, height: 0, y: -10 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -10 }}
                 className="relative group"
               >
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-purple/50 group-focus-within:text-accent-purple transition-colors" size={18} />
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                 <input
                   type="date"
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-light-section dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-accent-purple transition-all text-light-text dark:text-dark-text font-medium"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/[0.05] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-600"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
                 />
@@ -158,14 +158,14 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 mt-4 bg-gradient-to-r from-accent-purple to-accent-deepPurple text-white font-black rounded-2xl shadow-xl shadow-accent-purple/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-tighter"
+            className="w-full py-3.5 mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
             {loading ? (
-              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                {isForgotPassword ? "Send Recovery Link" : isRegister ? "Create Identity" : "Authorize Access"}
-                <ArrowRight size={18} />
+                {isForgotPassword ? "Send Link" : isRegister ? "Create Account" : "Log In"}
+                <ArrowRight size={16} />
               </>
             )}
           </button>
@@ -175,29 +175,29 @@ export default function Login() {
           {!isForgotPassword && !isRegister && (
             <button
               onClick={() => setIsForgotPassword(true)}
-              className="text-xs font-bold text-accent-purple hover:underline uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
+              className="text-sm font-medium text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors"
             >
-              Protocol: Reset Forgotten Key
+              Forgot password?
             </button>
           )}
 
-          <div className="text-xs font-medium text-light-textSecondary dark:text-dark-textSecondary flex items-center justify-center gap-2">
-            <span className="opacity-60">{isForgotPassword ? "Ready to re-auth?" : isRegister ? "Neural link exists?" : "New specimen?"}</span>
+          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5">
+            <span>{isForgotPassword ? "Remembered your password?" : isRegister ? "Already have an account?" : "Don't have an account?"}</span>
             <button
               onClick={() => {
                 setIsRegister(!isRegister);
                 setIsForgotPassword(false);
               }}
-              className="text-accent-purple font-black hover:underline bg-transparent border-none p-0 cursor-pointer uppercase tracking-tighter"
+              className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors"
             >
-              {isForgotPassword ? "Abort Backup" : isRegister ? "Standard Login" : "Initialize Link"}
+              {isForgotPassword ? "Log In" : isRegister ? "Log In" : "Sign Up"}
             </button>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 flex items-center justify-center gap-2 opacity-20 group cursor-default">
-          <ShieldCheck size={14} className="group-hover:text-accent-purple" />
-          <span className="text-[10px] font-black tracking-[0.3em] uppercase">Security Level 7 Active</span>
+        <div className="mt-8 pt-6 border-t border-black/5 dark:border-white/5 flex items-center justify-center gap-1.5 opacity-50">
+          <ShieldCheck size={14} className="text-gray-400" />
+          <span className="text-[11px] font-medium tracking-wide text-gray-400">Secured Configuration</span>
         </div>
       </motion.div>
     </div>

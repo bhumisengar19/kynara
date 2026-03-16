@@ -15,14 +15,14 @@ export default function App() {
   const { user, loading } = useAuth();
   const { theme } = useTheme();
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-kynaraDark-bg text-white font-rounded">Loading...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-kynaraDark-bg text-white font-sans antialiased">Loading...</div>;
 
   if (!user) {
     return <Login />;
   }
 
   return (
-    <div className={`h-screen flex font-rounded overflow-hidden transition-colors duration-500 relative ${theme === 'dark' ? 'bg-kynaraDark-bg text-kynaraDark-text' : 'bg-kynaraLight-bg text-kynaraLight-text'}`}>
+    <div className={`h-screen flex font-sans antialiased overflow-hidden transition-colors duration-500 relative ${theme === 'dark' ? 'bg-[#0a0a0b] text-white/90' : 'bg-[#f7f7f9] text-[#111111]'}`}>
       {theme === 'dark' ? <NightSkyBackground /> : <BotanicalBackground />}
       <Sidebar />
       <div className="flex-1 flex overflow-hidden relative h-full">

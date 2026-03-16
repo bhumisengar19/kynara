@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX, Globe, FastForward, UserCircle } from "lucide-react";
+import { Send, LogOut, Sparkles, Brain, Zap, Paperclip, X, FileText, Image as ImageIcon, Copy, RefreshCw, ThumbsUp, ThumbsDown, Bookmark, Share2, Check, Mic, Volume2, VolumeX, Globe, FastForward, UserCircle, GraduationCap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -12,7 +12,7 @@ import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { BotScene } from "../components/BotScene";
-import FloatAvatarContainer from "../components/FloatAvatarContainer";
+import AvatarPanel from "../components/AvatarPanel";
 
 const PERSONAS = [
     { id: "balanced", label: "Balanced", icon: Sparkles, color: "from-indigo-400 to-violet-400" },
@@ -43,7 +43,8 @@ export default function ChatPage() {
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [deepSearch, setDeepSearch] = useState(false);
     const [conciseMode, setConciseMode] = useState(false);
-    const [showAvatar, setShowAvatar] = useState(true);
+    const [showAvatar, setShowAvatar] = useState(false); // Hidden by default until activated
+    const [englishMode, setEnglishMode] = useState(false);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -126,6 +127,7 @@ export default function ChatPage() {
                 persona: persona.id,
                 deepSearch,
                 conciseMode,
+                englishMode,
                 attachments: currentAttachments
             });
 
@@ -279,36 +281,45 @@ export default function ChatPage() {
         );
     }
 
+    // Derive subtitle
+    const currentSubtitle = messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content || "";
+
     return (
-        <div className={`flex-1 flex flex-col relative z-20 overflow-hidden h-full transition-all duration-500`}>
-            {/* HEADER */}
-            <div className={`flex justify-between items-center px-8 py-4 backdrop-blur-xl sticky top-0 z-30 border-b ${theme === 'dark'
-                ? 'bg-kynaraDark-navy/30 border-white/5 shadow-neon'
-                : 'bg-kynaraLight-bg/40 border-kynaraLight-lavender shadow-sm'
+        <div className="flex w-full h-full">
+          <div className={`flex-1 flex flex-col relative z-20 min-w-0 overflow-hidden h-full transition-all duration-500`}>
+              {/* HEADER */}
+            <div className={`flex justify-between items-center px-6 py-4 backdrop-blur-md sticky top-0 z-30 transition-colors ${theme === 'dark'
+                ? 'bg-[#0a0a0b]/80 border-b border-white/[0.05]'
+                : 'bg-[#f7f7f9]/80 border-b border-black/[0.05]'
                 }`}>
-                <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-2xl bg-gradient-to-br ${persona.color} shadow-lg shadow-indigo-500/20`}>
-                        <persona.icon className="text-white" size={20} />
-                    </div>
+                <div className="flex items-center gap-3">
                     <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                            <h2 className={`text-base font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>Kynara AI</h2>
-                        </div>
                         <div className="flex items-center gap-2">
-                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse transition-colors duration-500 ${status === 'online' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
-                                status === 'thinking' ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' :
-                                    'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]'
-                                }`}></span>
-                            <span className={`text-[10px] opacity-70 font-semibold tracking-wide uppercase ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
-                                {status === 'online' ? 'Online' :
-                                    status === 'thinking' ? 'Thinking' :
-                                        'Generating response'}
+                            <h2 className={`font-semibold text-[15px] tracking-tight ${theme === 'dark' ? 'text-white/90' : 'text-gray-900'}`}>Kynara.ai</h2>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-widest ${status === 'online' ? (theme === 'dark' ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-600') :
+                                status === 'thinking' ? (theme === 'dark' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
+                                    (theme === 'dark' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-100 text-indigo-600')
+                                }`}>
+                                {status}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowAvatar(!showAvatar)}
+                        className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${showAvatar
+                            ? 'bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)]'
+                            : (theme === 'dark' ? 'bg-white/10 text-white/80 hover:bg-white/20' : 'bg-black/5 text-kynaraLight-text hover:bg-black/10')
+                            }`}
+                    >
+                        <GraduationCap size={16} className={showAvatar ? 'animate-bounce' : ''} />
+                        <span className="hidden sm:inline">English Practice</span>
+                    </button>
+                    
+                    <div className="w-px h-6 bg-gray-500/20 mx-1"></div>
+
                     <button
                         onClick={toggleVoice}
                         className={`p-2.5 rounded-xl transition-all ${voiceEnabled
@@ -331,26 +342,32 @@ export default function ChatPage() {
             </div>
 
             {/* MESSAGES */}
-            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 custom-scrollbar scroll-smooth">
-                <AnimatePresence>
-                    {messages.map((msg, i) => (
-                        <motion.div
-                            key={i}
-                            initial={theme === 'dark' ? { opacity: 0, scale: 0.9 } : { opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                            animate={{ opacity: 1, scale: 1, x: 0 }}
-                            transition={{ duration: 0.5, ease: "easeOut" }}
-                            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                        >
-                            <div
-                                className={`group max-w-[85%] lg:max-w-3xl px-6 py-4 rounded-[2rem] backdrop-blur-2xl relative transition-all duration-500 ${msg.role === "user"
-                                    ? theme === 'dark'
-                                        ? "bg-gradient-to-br from-kynaraDark-midnight to-kynaraDark-indigo text-white rounded-br-none shadow-[0_0_20px_rgba(192,132,252,0.2)] border border-kynaraDark-lavender/30"
-                                        : "bg-kynaraLight-pink/40 text-kynaraLight-text rounded-br-none border border-white shadow-soft"
-                                    : theme === 'dark'
-                                        ? "bg-kynaraDark-card text-kynaraDark-text border border-white/10 rounded-bl-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] prose-invert"
-                                        : "bg-kynaraLight-card text-kynaraLight-text border border-kynaraLight-lavender/30 rounded-bl-none shadow-glass"
-                                    }`}
+            <div className="flex-1 overflow-y-auto px-4 py-8 custom-scrollbar scroll-smooth">
+                <div className="max-w-3xl mx-auto space-y-8">
+                    <AnimatePresence>
+                        {messages.map((msg, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                             >
+                                {msg.role === "assistant" && (
+                                    <div className="w-8 h-8 rounded-full shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mr-4 shadow-sm mt-1 ring-1 ring-white/10">
+                                        <Sparkles size={14} />
+                                    </div>
+                                )}
+                                <div
+                                    className={`group relative max-w-[85%] lg:max-w-2xl px-5 py-3.5 transition-all duration-300 ${msg.role === "user"
+                                        ? theme === 'dark'
+                                            ? "bg-[#252528] text-white/90 rounded-2xl rounded-br-sm"
+                                            : "bg-gray-100 text-gray-900 rounded-2xl rounded-br-sm"
+                                        : theme === 'dark'
+                                            ? "bg-transparent text-white/90 prose-invert"
+                                            : "bg-transparent text-gray-900"
+                                        }`}
+                                >
                                 {msg.role === "user" ? (
                                     <div className="whitespace-pre-wrap font-medium leading-relaxed">{msg.content}</div>
                                 ) : (
@@ -416,7 +433,7 @@ export default function ChatPage() {
                                 )}
 
                                 {msg.role === "assistant" && (
-                                    <div className={`flex items-center gap-1 mt-4 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-kynaraLight-lavender/30'}`}>
+                                    <div className={`flex items-center gap-1 mt-2 -ml-2 opacity-0 group-hover:opacity-100 transition-opacity`}>
                                         <MessageToolButton
                                             icon={Copy}
                                             onClick={() => handleAction('copy', msg.content)}
@@ -464,7 +481,7 @@ export default function ChatPage() {
                                     </div>
                                 )}
 
-                                <div className={`absolute -bottom-6 text-[10px] opacity-0 group-hover:opacity-40 transition-opacity ${msg.role === "user" ? "right-0" : "left-0"} ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
+                                <div className={`absolute -bottom-5 text-[10px] opacity-0 group-hover:opacity-40 transition-opacity ${msg.role === "user" ? "right-1" : "left-1"} ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
                                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </div>
                             </div>
@@ -478,30 +495,33 @@ export default function ChatPage() {
                         animate={{ opacity: 1 }}
                         className="flex justify-start"
                     >
-                        <div className={`px-8 py-5 rounded-[2rem] rounded-bl-none flex gap-1.5 items-center backdrop-blur-xl ${theme === 'dark' ? 'bg-kynaraDark-indigo/40 border border-white/5' : 'bg-kynaraLight-lavender/30 border border-white'
-                            }`}>
+                        <div className="w-8 h-8 rounded-full shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mr-4 shadow-sm mt-1 ring-1 ring-white/10">
+                            <Sparkles size={14} className="animate-spin" />
+                        </div>
+                        <div className={`px-5 py-4 rounded-2xl flex gap-1.5 items-center`}>
                             {theme === 'dark' ? (
                                 <>
-                                    <span className="w-1.5 h-1.5 bg-kynaraDark-lavender rounded-full animate-twinkle" style={{ animationDelay: '0ms' }}></span>
-                                    <span className="w-1.5 h-1.5 bg-kynaraDark-lavender rounded-full animate-twinkle" style={{ animationDelay: '200ms' }}></span>
-                                    <span className="w-1.5 h-1.5 bg-kynaraDark-lavender rounded-full animate-twinkle" style={{ animationDelay: '400ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></span>
                                 </>
                             ) : (
                                 <>
-                                    <span className="w-2 h-2 bg-kynaraLight-mint rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                    <span className="w-2 h-2 bg-kynaraLight-pink rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                    <span className="w-2 h-2 bg-kynaraLight-lavender rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-black/40 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-black/40 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-black/40 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></span>
                                 </>
                             )}
                         </div>
                     </motion.div>
                 )}
-                <div ref={messagesEndRef} />
+                <div ref={messagesEndRef} className="h-4" />
+                </div>
             </div>
 
             {/* INPUT AREA */}
-            <div className="p-6 md:p-8 pt-0 bg-transparent">
-                <div className="max-w-5xl mx-auto container relative">
+            <div className="p-4 bg-transparent mt-auto relative z-30">
+                <div className="max-w-3xl mx-auto container relative">
                     {/* Attachment Previews */}
                     <AnimatePresence>
                         {attachments.length > 0 && (
@@ -535,86 +555,75 @@ export default function ChatPage() {
                         )}
                     </AnimatePresence>
 
-                    <div className="relative flex items-center group">
-                        {theme === 'dark' && (
-                            <div className="absolute inset-0 bg-kynaraDark-lavender/10 blur-2xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
-                        )}
-
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            className="hidden"
-                            accept="image/*,.pdf,.doc,.docx,.csv,.txt"
-                        />
-
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                            className={`absolute left-4 p-2 rounded-xl transition-all z-50 cursor-pointer ${theme === 'dark'
-                                ? 'text-white/40 hover:text-kynaraDark-lavender hover:bg-white/5'
-                                : 'text-kynaraLight-text/40 hover:text-kynaraLight-pink hover:bg-black/5'
-                                } ${uploading ? 'animate-pulse' : ''}`}
-                        >
-                            <Paperclip size={20} />
-                        </button>
-
-                        <button
-                            onClick={handleVoiceInput}
-                            className={`absolute left-14 p-2 rounded-xl transition-all z-50 cursor-pointer ${isListening
-                                ? 'text-red-500 bg-red-500/10 animate-pulse'
-                                : (theme === 'dark' ? 'text-white/40 hover:text-kynaraDark-lavender hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-kynaraLight-pink hover:bg-black/5')
-                                }`}
-                            title="Voice Input"
-                        >
-                            <Mic size={20} />
-                        </button>
-
-                        <button
-                            onClick={() => { setDeepSearch(!deepSearch); setConciseMode(false); }}
-                            className={`absolute left-24 p-2 rounded-xl transition-all z-50 cursor-pointer ${deepSearch
-                                ? 'text-indigo-500 bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.5)]'
-                                : (theme === 'dark' ? 'text-white/40 hover:text-indigo-400 hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-indigo-500 hover:bg-black/5')
-                                }`}
-                            title={deepSearch ? "Deep Search Enabled" : "Enable Deep Search"}
-                        >
-                            <Globe size={20} className={deepSearch ? 'animate-pulse' : ''} />
-                        </button>
+                    <div className={`relative flex items-center group rounded-[24px] border transition-all duration-300 shadow-xl ${theme === 'dark' ? 'bg-[#151517] border-white/10 shadow-black/50 focus-within:border-white/20' : 'bg-white border-black/5 shadow-gray-200/50 focus-within:border-black/10'}`}>
                         
-                        <button
-                            onClick={() => { setConciseMode(!conciseMode); setDeepSearch(false); }}
-                            className={`absolute left-[8.5rem] p-2 rounded-xl transition-all z-50 cursor-pointer ${conciseMode
-                                ? 'text-yellow-500 bg-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.5)]'
-                                : (theme === 'dark' ? 'text-white/40 hover:text-yellow-400 hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-yellow-500 hover:bg-black/5')
-                                }`}
-                            title={conciseMode ? "Concise Mode Enabled" : "Enable Concise Mode (1-Word/1-Line Answer)"}
-                        >
-                            <FastForward size={20} className={conciseMode ? 'animate-pulse' : ''} />
-                        </button>
+                        <div className="absolute left-2 flex items-center gap-1">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                className="hidden"
+                                accept="image/*,.pdf,.doc,.docx,.csv,.txt"
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading}
+                                className={`p-2 rounded-full transition-all ${theme === 'dark'
+                                    ? 'text-white/40 hover:text-white hover:bg-white/10'
+                                    : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                                    } ${uploading ? 'animate-pulse' : ''}`}
+                            >
+                                <Paperclip size={18} />
+                            </button>
 
-                        <button
-                            onClick={() => setShowAvatar(!showAvatar)}
-                            className={`absolute left-[11rem] p-2 rounded-xl transition-all z-50 cursor-pointer ${showAvatar
-                                ? 'text-teal-500 bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.5)]'
-                                : (theme === 'dark' ? 'text-white/40 hover:text-teal-400 hover:bg-white/5' : 'text-kynaraLight-text/40 hover:text-teal-500 hover:bg-black/5')
-                                }`}
-                            title={showAvatar ? "Hide AI Avatar" : "Show AI Avatar"}
-                        >
-                            <UserCircle size={20} className={showAvatar ? 'animate-pulse' : ''} />
-                        </button>
+                            <button
+                                onClick={handleVoiceInput}
+                                className={`p-2 rounded-full transition-all ${isListening
+                                    ? 'text-red-500 bg-red-500/10 animate-pulse'
+                                    : (theme === 'dark' ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100')
+                                    }`}
+                                title="Voice Input"
+                            >
+                                <Mic size={18} />
+                            </button>
+
+                            <div className="w-px h-5 mx-0.5 opacity-20 bg-current pointer-events-none"></div>
+
+                            <button
+                                onClick={() => { setDeepSearch(!deepSearch); setConciseMode(false); }}
+                                className={`p-2 rounded-full transition-all ${deepSearch
+                                    ? 'text-indigo-400 bg-indigo-500/10'
+                                    : (theme === 'dark' ? 'text-white/40 hover:text-indigo-400 hover:bg-white/10' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50')
+                                    }`}
+                                title={deepSearch ? "Deep Search Enabled" : "Enable Deep Search"}
+                            >
+                                <Globe size={18} />
+                            </button>
+                            
+                            <button
+                                onClick={() => { setConciseMode(!conciseMode); setDeepSearch(false); }}
+                                className={`p-2 rounded-full transition-all ${conciseMode
+                                    ? 'text-yellow-500 bg-yellow-500/10'
+                                    : (theme === 'dark' ? 'text-white/40 hover:text-yellow-400 hover:bg-white/10' : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50')
+                                    }`}
+                                title={conciseMode ? "Concise Mode Enabled" : "Enable Concise Mode"}
+                            >
+                                <FastForward size={18} />
+                            </button>
+                        </div>
 
                         <textarea
                             rows="1"
-                            className={`w-full backdrop-blur-2xl border rounded-3xl py-5 pl-[13.5rem] pr-16 focus:outline-none transition-all resize-none shadow-2xl placeholder:opacity-40 font-medium ${theme === 'dark'
-                                ? 'bg-kynaraDark-navy/60 border-white/10 text-white focus:ring-1 focus:ring-kynaraDark-lavender/50'
-                                : 'bg-kynaraLight-card text-kynaraLight-text border-kynaraLight-lavender focus:ring-2 focus:ring-kynaraLight-pink/30'
-                                } ${deepSearch ? (theme === 'dark' ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]') : conciseMode ? (theme === 'dark' ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.1)]' : 'border-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.2)]') : ''}  ${status === 'generating' ? 'animate-pulse' : ''}`}
-                            placeholder={conciseMode ? `Fast Answer mode...` : deepSearch ? `Deep Search with ${persona.label}...` : `Ask ${persona.label} AI...`}
+                            className={`w-full bg-transparent py-4 pl-[12rem] pr-14 focus:outline-none resize-none mx-2 text-[15px] ${theme === 'dark'
+                                ? 'text-white/90 placeholder:text-white/30'
+                                : 'text-gray-900 placeholder:text-gray-400'
+                                } ${status === 'generating' ? 'animate-pulse' : ''}`}
+                            placeholder={conciseMode ? `Fast Answer mode...` : deepSearch ? `Deep Search...` : `Message Kynara...`}
                             value={input}
                             onChange={(e) => {
                                 setInput(e.target.value);
                                 e.target.style.height = "auto";
-                                e.target.style.height = e.target.scrollHeight + "px";
+                                e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
                             }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
@@ -623,36 +632,48 @@ export default function ChatPage() {
                                 }
                             }}
                         />
+
                         <button
                             onClick={sendMessage}
                             disabled={(!input.trim() && attachments.length === 0) || loading || uploading}
-                            className={`absolute right-4 p-3.5 rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 shadow-xl z-50 cursor-pointer ${theme === 'dark'
-                                ? 'bg-gradient-to-r from-kynaraDark-lavender to-kynaraDark-violet text-white shadow-kynaraDark-lavender/20'
-                                : 'bg-gradient-to-r from-kynaraLight-pink to-kynaraLight-lavender text-kynaraLight-text shadow-kynaraLight-pink/20'
+                            className={`absolute right-2 p-2 rounded-full hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 ${input.trim() || attachments.length > 0
+                                ? (theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white')
+                                : (theme === 'dark' ? 'bg-white/10 text-white/50' : 'bg-black/5 text-black/30')
                                 }`}
                         >
-                            <Send size={20} />
+                            <Send size={16} className={input.trim() ? "translate-x-0.5" : ""} />
                         </button>
                     </div>
                 </div>
             </div>
+          </div>
+            
+          {/* STATIC 3D AVATAR PANEL */}
+          <AnimatePresence>
+              {showAvatar && (
+                  <motion.div 
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 320, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ ease: "easeInOut", duration: 0.3 }}
+                    className="h-full shrink-0 flex flex-col"
+                  >
+                        <AvatarPanel 
+                            isSpeaking={isSpeaking}
+                            isListening={isListening}
+                            status={status}
+                            onVoiceInput={handleVoiceInput}
+                            voiceEnabled={voiceEnabled}
+                            toggleVoice={toggleVoice}
+                            englishMode={englishMode}
+                            setEnglishMode={setEnglishMode}
+                            subtitle={currentSubtitle}
+                        />
+                   </motion.div>
+              )}
+          </AnimatePresence>
 
-            {/* 3D FLOATING AVATAR */}
-            <AnimatePresence>
-                {showAvatar && (
-                    <FloatAvatarContainer 
-                        isSpeaking={isSpeaking}
-                        isListening={isListening}
-                        status={status}
-                        onVoiceInput={handleVoiceInput}
-                        voiceEnabled={voiceEnabled}
-                        toggleVoice={toggleVoice}
-                        setVisible={setShowAvatar}
-                    />
-                )}
-            </AnimatePresence>
-
-        </div >
+        </div>
     );
 }
 

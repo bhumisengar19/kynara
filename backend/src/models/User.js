@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       required: false // Optional for now to avoid breaking existing users
     },
+    avatar: {
+      type: String,
+      default: ""
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date
   },

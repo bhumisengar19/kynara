@@ -45,7 +45,7 @@ function Particles({ count = 800 }) {
     return (
         <instancedMesh ref={mesh} args={[null, null, count]}>
             <sphereGeometry args={[0.2, 8, 8]} />
-            <meshStandardMaterial color="#9C27B0" emissive="#EA80FC" emissiveIntensity={1} transparent opacity={0.2} />
+            <meshStandardMaterial color="#6366f1" emissive="#8b5cf6" emissiveIntensity={1} transparent opacity={0.3} />
         </instancedMesh>
     );
 }
@@ -55,8 +55,8 @@ export default function Background3D() {
         <div className="absolute inset-0 z-0 pointer-events-none opacity-30 dark:opacity-60 overflow-hidden">
             <Canvas camera={{ position: [0, 0, 100], fov: 75 }}>
                 <ambientLight intensity={0.4} />
-                <pointLight position={[50, 50, 50]} intensity={1.5} color="#E040FB" />
-                <pointLight position={[-50, -50, -50]} intensity={1} color="#9C27B0" />
+                <pointLight position={[50, 50, 50]} intensity={1.5} color="#8b5cf6" />
+                <pointLight position={[-50, -50, -50]} intensity={1} color="#4338ca" />
                 <Particles />
             </Canvas>
         </div>

@@ -185,7 +185,7 @@ export const getChatHistory = async (req, res) => {
 */
 export const sendMessage = async (req, res) => {
   try {
-    const { message, chatId, action, targetLanguage, attachments, deepSearch, conciseMode, persona } = req.body;
+    const { message, chatId, action, targetLanguage, attachments, deepSearch, conciseMode, persona, englishMode } = req.body;
 
     if ((!message && !action && (!attachments || attachments.length === 0)) || !chatId) {
       console.warn("Missing message, action, or attachments; or missing chatId");
@@ -274,16 +274,20 @@ export const sendMessage = async (req, res) => {
       let userMsg = (contextInfo ? `CONTEXT FROM ATTACHED FILES:\n${contextInfo}\n\nUSER MESSAGE: ` : "") + (message || "");
       
       let systemInstructions = "";
-      if (deepSearch) {
-        systemInstructions = "You must perform a deep, comprehensive and highly detailed analysis thinking step by step, providing exhaustive depth and citing structured reasoning. Ensure the answer is elaborate. Do not mention you are following a system command.";
+      if (englishMode) {
+          systemInstructions = "You are an expert English Language Coach. Your primary job is to help the user practice speaking English. You MUST: 1) Subtly correct any grammar/vocabulary mistakes they made in their previous message. 2) Provide a better way to structure their sentence if applicable. 3) Keep your actual responses natural, engaging, and perfect for conversational practice. Do not break character.";
+      } else if (deepSearch) {
+        systemInstructions = "You are operating in DEEP SEARCH mode. You MUST perform an extremely deep, comprehensive, and highly detailed analysis. Think step-by-step and provide an exhaustive, multi-paragraph, and highly elaborate response utilizing structured reasoning. Make the answer as long and detailed as possible. Do not mention you are following a system command.";
       } else if (conciseMode) {
         systemInstructions = "You MUST provide a direct, single-word or single-sentence answer only. Be extremely concise. Do not explain unless explicitly asked. Do not mention you are following a system command.";
       }
       
-      if (persona === 'creative') {
-        systemInstructions += "\nRespond in a highly creative, engaging, playful, and imaginative tone. Use vivid language.";
-      } else if (persona === 'technical') {
-        systemInstructions += "\nRespond in a highly technical, precise, and analytical tone. Focus on accuracy, structure, and professional domain knowledge.";
+      if (!englishMode) {
+          if (persona === 'creative') {
+            systemInstructions += "\nRespond in a highly creative, engaging, playful, and imaginative tone. Use vivid language.";
+          } else if (persona === 'technical') {
+            systemInstructions += "\nRespond in a highly technical, precise, and analytical tone. Focus on accuracy, structure, and professional domain knowledge.";
+          }
       }
       
       prompt = PROMPTS.MEMORY_CHAT(history, userMsg, systemInstructions);

@@ -1,12 +1,10 @@
 export const PROMPTS = {
-    MEMORY_CHAT: (history, currentMessage, instructions = "") => `${instructions || "You are a helpful AI assistant."}
-
-Here is the conversation so far:
+    MEMORY_CHAT: (history, currentMessage, instructions = "") => `Here is the conversation so far:
 ${history}
 
 User: ${currentMessage}
 
-Respond naturally. Keep context from previous messages and respond clearly.`,
+${instructions || "Respond naturally. Keep context from previous messages and respond clearly."}`,
 
     HUMANIZE: (aiResponse) => `Rewrite the following AI response in a more natural, friendly, and human-like tone. 
 Make it conversational and easy to understand.

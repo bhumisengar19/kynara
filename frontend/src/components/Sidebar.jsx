@@ -57,56 +57,58 @@ export default function Sidebar() {
     );
 
     return (
-        <div className={`w-72 flex flex-col backdrop-blur-3xl border-r relative z-30 transition-all hidden md:flex h-full ${theme === 'dark'
-            ? 'bg-kynaraDark-navy/40 border-white/5 shadow-2xl shadow-black/50'
-            : 'bg-kynaraLight-bg/40 border-kynaraLight-lavender shadow-glass'
+        <div className={`w-[260px] flex flex-col relative z-30 transition-all hidden md:flex h-full shrink-0 border-r ${theme === 'dark'
+            ? 'bg-[#0a0a0b]/80 backdrop-blur-3xl border-white/[0.05]'
+            : 'bg-[#f7f7f9]/80 backdrop-blur-3xl border-black/[0.05]'
             }`}>
             {/* HEADER */}
-            <div className={`p-6 border-b ${theme === 'dark' ? 'border-white/5' : 'border-kynaraLight-lavender'}`}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg ${theme === 'dark' ? 'bg-gradient-to-br from-kynaraDark-lavender to-kynaraDark-violet' : 'bg-gradient-to-br from-kynaraLight-pink to-kynaraLight-lavender'
-                        }`}>K</div>
-                    <Link to="/" className={`text-2xl font-bold bg-clip-text text-transparent ${theme === 'dark' ? 'bg-gradient-to-r from-kynaraDark-lavender to-kynaraDark-indigo' : 'bg-gradient-to-r from-kynaraLight-pink to-kynaraLight-text'
-                        }`}>
-                        Kynara
-                    </Link>
-                </div>
+            <div className="p-4 px-5">
+                <Link to="/" className="flex items-center gap-2 mb-6 pointer-events-auto group">
+                    <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white ring-1 ring-white/20 shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
+                        <span className="font-bold text-sm tracking-tight">K</span>
+                    </div>
+                    <span className={`font-semibold text-[15px] tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        Kynara.ai
+                    </span>
+                </Link>
 
                 <button
                     onClick={handleCreateChat}
-                    className={`w-full flex items-center justify-center gap-2 py-3.5 font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all group mb-6 relative z-[100] pointer-events-auto cursor-pointer ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-kynaraDark-lavender to-kynaraDark-violet text-white shadow-kynaraDark-lavender/20'
-                        : 'bg-gradient-to-r from-kynaraLight-pink to-kynaraLight-lavender text-kynaraLight-text shadow-kynaraLight-pink/20'
+                    className={`w-full flex items-center justify-start gap-3 px-4 py-2.5 font-medium text-[14px] rounded-xl hover:scale-[1.01] active:scale-[0.99] transition-all group mb-5 relative pointer-events-auto cursor-pointer border ${theme === 'dark'
+                        ? 'bg-white/[0.02] hover:bg-white/[0.04] border-white/5 text-white shadow-sm'
+                        : 'bg-white hover:bg-gray-50 border-black/5 text-gray-900 shadow-sm'
                         }`}
                 >
-                    <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                    New Chat
+                    <div className={`flex items-center justify-center p-1 rounded-md ${theme === 'dark' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                        <Plus size={16} className="transition-transform group-hover:rotate-90" />
+                    </div>
+                    New Thread
                 </button>
 
                 {/* SEARCH */}
-                <div className="relative mb-4">
+                <div className="relative mb-5 group">
                     <input
-                        className={`w-full py-2.5 pl-9 pr-3 text-sm rounded-xl border transition-all ${theme === 'dark'
-                            ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:bg-white/10 focus:border-kynaraDark-lavender/40'
-                            : 'bg-kynaraLight-card border-kynaraLight-lavender text-kynaraLight-text placeholder:text-kynaraLight-text/40 focus:ring-1 focus:ring-kynaraLight-pink/50'
-                            }`}
-                        placeholder="Search chats..."
+                        className={`w-full py-2 pl-9 pr-3 text-[13px] rounded-lg border transition-all ${theme === 'dark'
+                            ? 'bg-[#1a1a1c] border-white/[0.05] text-white/90 placeholder:text-white/40 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50'
+                            : 'bg-white border-black/5 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500/30 focus:ring-1 focus:ring-indigo-500/30'
+                            } outline-none`}
+                        placeholder="Search history..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`} />
+                    <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 opacity-40 group-focus-within:opacity-100 transition-opacity pointer-events-none ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`} />
                 </div>
-                <div className="flex items-center justify-between mb-2 px-1">
-                    <h3 className={`text-[10px] font-bold uppercase tracking-widest opacity-40 ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
-                        {showArchived ? "Archived Chats" : "Recent Conversations"}
+                <div className="flex items-center justify-between px-2">
+                    <h3 className={`text-[11px] font-semibold tracking-wide ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
+                        {showArchived ? "Archived" : "Previous 7 Days"}
                     </h3>
                     <button
                         onClick={() => setShowArchived(!showArchived)}
-                        className={`p-1.5 rounded-lg transition-all hover:scale-110 ${showArchived
-                            ? 'bg-amber-500/20 text-amber-500'
-                            : 'hover:bg-white/5 opacity-40 hover:opacity-100'
+                        className={`p-1.5 rounded-md transition-all ${showArchived
+                            ? 'bg-amber-500/10 text-amber-500'
+                            : (theme === 'dark' ? 'text-white/30 hover:text-white/80 hover:bg-white/5' : 'text-gray-400 hover:text-gray-800 hover:bg-gray-100')
                             }`}
-                        title={showArchived ? "Show Active Chats" : "Show Archived Chats"}
+                        title={showArchived ? "Show Active" : "Show Archived"}
                     >
                         <FolderArchive size={14} />
                     </button>
@@ -114,21 +116,20 @@ export default function Sidebar() {
             </div>
 
             {/* CHAT LIST */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-3 space-y-0.5 custom-scrollbar pb-4">
                 {filteredChats.map((chat) => (
                     <div
                         key={chat._id}
                         onClick={() => !editingId && navigate(`/c/${chat._id}`)}
-                        className={`p-3 rounded-2xl cursor-pointer flex items-center gap-3 transition-all duration-300 group relative ${id === chat._id
+                        className={`px-3 py-2 rounded-lg cursor-pointer flex items-center gap-3 transition-colors duration-200 group relative ${id === chat._id
                             ? theme === 'dark'
-                                ? "bg-white/10 border border-white/10 shadow-lg text-white"
-                                : "bg-kynaraLight-pink/20 border border-kynaraLight-lavender shadow-sm text-kynaraLight-text"
+                                ? "bg-[#252528] text-white"
+                                : "bg-[#eaeaec] text-gray-900 font-medium"
                             : theme === 'dark'
-                                ? "hover:bg-white/5 text-white/60 hover:text-white"
-                                : "hover:bg-kynaraLight-lavender/20 text-kynaraLight-text/60 hover:text-kynaraLight-text"
+                                ? "hover:bg-[#1a1a1c] text-white/70 hover:text-white"
+                                : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
                             }`}
                     >
-                        <MessageSquare size={18} className="opacity-70 group-hover:opacity-100 shrink-0" />
 
                         {editingId === chat._id ? (
                             <div className="flex-1 flex gap-1 items-center" onClick={e => e.stopPropagation()}>
@@ -147,20 +148,20 @@ export default function Sidebar() {
                             </div>
                         ) : (
                             <>
-                                <span className="truncate font-medium flex-1 pr-14 text-sm">
-                                    {chat.title}
+                                <span className={`truncate flex-1 pr-14 text-[13px] ${id === chat._id ? 'font-medium' : ''}`}>
+                                    {chat.title || "Untitled Conversation"}
                                 </span>
 
                                 <div className="absolute right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={(e) => handleRename(e, chat._id, chat.title)} className="p-1.5 hover:bg-indigo-500/20 text-indigo-400 rounded-lg" title="Rename"><Edit2 size={14} /></button>
+                                    <button onClick={(e) => handleRename(e, chat._id, chat.title)} className={`p-1 rounded-md ${theme === 'dark' ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-black/10 text-black/50 hover:text-black'}`} title="Rename"><Edit2 size={13} /></button>
 
                                     {showArchived ? (
-                                        <button onClick={() => unarchiveChat(chat._id)} className="p-1.5 hover:bg-green-500/20 text-green-400 rounded-lg" title="Restore"><RotateCcw size={14} /></button>
+                                        <button onClick={() => unarchiveChat(chat._id)} className={`p-1 rounded-md ${theme === 'dark' ? 'hover:bg-green-500/20 text-green-400' : 'hover:bg-green-100 text-green-600'}`} title="Restore"><RotateCcw size={13} /></button>
                                     ) : (
-                                        <button onClick={() => archiveChat(chat._id)} className="p-1.5 hover:bg-amber-500/20 text-amber-400 rounded-lg" title="Archive"><Archive size={14} /></button>
+                                        <button onClick={() => archiveChat(chat._id)} className={`p-1 rounded-md ${theme === 'dark' ? 'hover:bg-amber-500/20 text-amber-400/80 hover:text-amber-400' : 'hover:bg-amber-100 text-amber-600'}`} title="Archive"><Archive size={13} /></button>
                                     )}
 
-                                    <button onClick={() => deleteChat(chat._id)} className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-lg" title="Delete"><Trash2 size={14} /></button>
+                                    <button onClick={() => deleteChat(chat._id)} className={`p-1 rounded-md ${theme === 'dark' ? 'hover:bg-red-500/20 text-red-400/80 hover:text-red-400' : 'hover:bg-red-100 text-red-600'}`} title="Delete"><Trash2 size={13} /></button>
                                 </div>
                             </>
                         )}
@@ -169,34 +170,36 @@ export default function Sidebar() {
             </div>
 
             {/* FOOTER */}
-            <div className={`p-4 border-t mt-auto space-y-2 ${theme === 'dark' ? 'border-white/5' : 'border-kynaraLight-lavender'}`}>
-                <NavLink
-                    to="/profile"
-                    className={({ isActive }) => `w-full flex items-center gap-3 p-3 rounded-2xl transition-all group text-left ${isActive
-                        ? theme === 'dark' ? "bg-white/10 border border-white/10" : "bg-kynaraLight-pink/20 border border-kynaraLight-lavender"
-                        : "hover:bg-white/5"
-                        }`}
-                >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-lg shrink-0 group-hover:scale-110 transition-transform ${theme === 'dark' ? 'bg-gradient-to-br from-kynaraDark-lavender to-kynaraDark-violet' : 'bg-gradient-to-br from-kynaraLight-pink to-kynaraLight-lavender'
-                        }`}>
-                        {user?.name ? user.name.charAt(0).toUpperCase() : <User size={20} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className={`font-semibold truncate text-sm ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
-                            {user?.name || 'User'}
+            <div className={`p-3 mt-auto ${theme === 'dark' ? '' : ''}`}>
+                <div className={`relative rounded-xl border p-1 ${theme === 'dark' ? 'bg-[#151517] border-white/5' : 'bg-white border-black/5 shadow-sm'}`}>
+                    <NavLink
+                        to="/profile"
+                        className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-lg transition-all group text-left relative ${isActive
+                            ? theme === 'dark' ? "bg-white/5" : "bg-gray-100"
+                            : theme === 'dark' ? "hover:bg-white/[0.03]" : "hover:bg-gray-50"
+                            }`}
+                    >
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">
+                            {user?.name ? <span className="text-white font-semibold text-sm">{user.name.charAt(0).toUpperCase()}</span> : <User size={16} className="text-white" />}
                         </div>
-                        <div className="text-[10px] opacity-60 truncate">Identity Verified</div>
-                    </div>
-                </NavLink>
-
-                <button
-                    onClick={logout}
-                    className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-sm opacity-60 hover:opacity-100 group border border-transparent ${theme === 'dark' ? 'hover:bg-red-500/10 hover:text-red-400' : 'hover:bg-red-500/5 hover:text-red-500'
-                        }`}
-                >
-                    <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-                    <span className="font-semibold">Logout</span>
-                </button>
+                        <div className="flex-1 min-w-0 pr-6">
+                            <div className={`font-semibold truncate text-[13px] tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                {user?.name || 'Pro User'}
+                            </div>
+                            <div className={`text-[11px] truncate tracking-wide ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
+                                Premium Plan
+                            </div>
+                        </div>
+                        
+                        <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); logout(); }}
+                            className={`absolute right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all ${theme === 'dark' ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-gray-200 text-gray-400 hover:text-gray-900'}`}
+                            title="Log out"
+                        >
+                            <LogOut size={14} />
+                        </button>
+                    </NavLink>
+                </div>
             </div>
         </div>
     );

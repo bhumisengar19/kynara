@@ -44,7 +44,8 @@ export const register = async (req, res) => {
         id: newUser._id,
         email: newUser.email,
         name: newUser.name,
-        dob: newUser.dob
+        dob: newUser.dob,
+        avatar: newUser.avatar
       },
     });
 
@@ -83,7 +84,8 @@ export const login = async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        dob: user.dob
+        dob: user.dob,
+        avatar: user.avatar
       },
     });
 
@@ -168,11 +170,45 @@ export const resetPassword = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        dob: user.dob
+        dob: user.dob,
+        avatar: user.avatar
       }
     });
   } catch (error) {
     console.error("Reset password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ================= UPDATE PROFILE =================
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, email, dob, avatar } = req.body;
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (dob) user.dob = new Date(dob);
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        dob: user.dob,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
