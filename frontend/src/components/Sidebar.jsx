@@ -174,20 +174,37 @@ export default function Sidebar() {
                 <div className={`relative rounded-xl border p-1 ${theme === 'dark' ? 'bg-[#151517] border-white/5' : 'bg-white border-black/5 shadow-sm'}`}>
                     <NavLink
                         to="/profile"
-                        className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-lg transition-all group text-left relative ${isActive
-                            ? theme === 'dark' ? "bg-white/5" : "bg-gray-100"
+                        className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-lg transition-all group text-left relative overflow-hidden ${isActive
+                            ? theme === 'dark' ? "bg-white/5 ring-1 ring-white/10" : "bg-gray-100 ring-1 ring-black/5"
                             : theme === 'dark' ? "hover:bg-white/[0.03]" : "hover:bg-gray-50"
                             }`}
                     >
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">
-                            {user?.name ? <span className="text-white font-semibold text-sm">{user.name.charAt(0).toUpperCase()}</span> : <User size={16} className="text-white" />}
+                        {/* Avatar */}
+                        <div className="relative w-9 h-9 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                            {user?.profilePictureUrl ? (
+                                <img src={user.profilePictureUrl} alt="Avatar" className="w-full h-full object-cover rounded-full shadow-md" />
+                            ) : (
+                                <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
+                                    <span className="text-white font-bold text-sm">
+                                        {user?.name ? user.name.charAt(0).toUpperCase() : <User size={16} />}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {/* Online Indicator if picture is uploaded optionally, let's put it on all users */}
+                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#151517] shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
                         </div>
+
+                        {/* Name & Badge */}
                         <div className="flex-1 min-w-0 pr-6">
                             <div className={`font-semibold truncate text-[13px] tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                {user?.name || 'Pro User'}
+                                {user?.name || 'Authorized Neural Link'}
                             </div>
-                            <div className={`text-[11px] truncate tracking-wide ${theme === 'dark' ? 'text-white/40' : 'text-gray-500'}`}>
-                                Premium Plan
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <Check size={10} className="text-blue-500 drop-shadow-[0_0_4px_rgba(59,130,246,0.6)]" />
+                                <div className={`text-[10px] uppercase font-bold tracking-wider ${theme === 'dark' ? 'text-blue-400/80' : 'text-blue-600/80'}`}>
+                                    Identity Verified
+                                </div>
                             </div>
                         </div>
                         

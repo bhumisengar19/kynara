@@ -45,7 +45,7 @@ export const register = async (req, res) => {
         email: newUser.email,
         name: newUser.name,
         dob: newUser.dob,
-        avatar: newUser.avatar
+        profilePictureUrl: newUser.profilePictureUrl
       },
     });
 
@@ -85,7 +85,7 @@ export const login = async (req, res) => {
         email: user.email,
         name: user.name,
         dob: user.dob,
-        avatar: user.avatar
+        profilePictureUrl: user.profilePictureUrl
       },
     });
 
@@ -171,11 +171,10 @@ export const resetPassword = async (req, res) => {
         name: user.name,
         email: user.email,
         dob: user.dob,
-        avatar: user.avatar
+        profilePictureUrl: user.profilePictureUrl
       }
     });
   } catch (error) {
-    console.error("Reset password error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -183,28 +182,34 @@ export const resetPassword = async (req, res) => {
 // ================= UPDATE PROFILE =================
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, dob, avatar } = req.body;
+    const { name, dob } = req.body;
     
+    // The auth middleware guarantees req.user exists
     const user = await User.findById(req.user._id);
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     if (name) user.name = name;
-    if (email) user.email = email;
     if (dob) user.dob = new Date(dob);
-    if (avatar !== undefined) user.avatar = avatar;
+    
+    // If a file was uploaded by multer, its path is in req.file.path
+    if (req.file) {
+      // Create full URL (assuming a static route serves /uploads)
+      user.profilePictureUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    }
 
     await user.save();
 
-    res.json({
+    res.status(200).json({
       success: true,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         dob: user.dob,
-        avatar: user.avatar
+        profilePictureUrl: user.profilePictureUrl
       }
     });
   } catch (error) {

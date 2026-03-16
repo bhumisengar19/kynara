@@ -46,6 +46,8 @@ export default function ChatPage() {
     const [showAvatar, setShowAvatar] = useState(false); // Hidden by default until activated
     const [englishMode, setEnglishMode] = useState(false);
 
+    const speechRef = useRef(null); // To prevent GC of utterance
+
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -82,6 +84,19 @@ export default function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, loading]);
+
+    // Pre-load voices for SpeechSynthesis
+    useEffect(() => {
+        if (!window.speechSynthesis) return;
+        const loadVoices = () => {
+            window.speechSynthesis.getVoices();
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
 
     // Load Chat
     useEffect(() => {
@@ -188,11 +203,68 @@ export default function ChatPage() {
     };
 
     const speakResponse = (text) => {
+        console.log("speakResponse triggered with text:", text?.substring(0, 50) + "...");
+        if (!window.speechSynthesis) {
+            console.error("SpeechSynthesis NOT found in window");
+            return;
+        }
+
+        // Cancel any ongoing speech
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
+
+        // Strip Markdown for cleaner speech
+        const cleanText = text
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links
+            .replace(/(\*\*|__)(.*?)\1/g, '$2')        // Remove bold
+            .replace(/(\*|_)(.*?)\1/g, '$2')          // Remove italic
+            .replace(/`{1,3}.*?`{1,3}/gs, '')         // Remove code blocks
+            .replace(/[#*>-]/g, ' ')                 // Remove list/header markers
+            .replace(/\n/g, ' ')                      // Newlines to spaces
+            .trim();
+
+        console.log("Cleaned text for TTS:", cleanText?.substring(0, 50) + "...");
+
+        if (!cleanText) {
+            console.warn("No text left to speak after stripping markdown");
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        speechRef.current = utterance; 
+        
+        const voices = window.speechSynthesis.getVoices();
+        // Fallback to simpler voice selection
+        const voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+        
+        if (voice) {
+            console.log("Using voice:", voice.name);
+            utterance.voice = voice;
+        }
+        
+        utterance.lang = 'en-US';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        utterance.onstart = () => {
+            console.log("SpeechSynthesis STARTED successfully");
+            setIsSpeaking(true);
+        };
+        utterance.onend = () => {
+            console.log("SpeechSynthesis COMPLETED naturally");
+            setIsSpeaking(false);
+            speechRef.current = null;
+        };
+        utterance.onerror = (e) => {
+            console.error("SpeechSynthesis ERROR EVENT:", e.error, e);
+            setIsSpeaking(false);
+            speechRef.current = null;
+        };
+
+        // Some browsers need a resume() before speak() if it was ever interrupted
+        window.speechSynthesis.resume();
         window.speechSynthesis.speak(utterance);
+        console.log("speechSynthesis.speak() called for text length:", cleanText.length);
     };
 
     const toggleVoice = () => {

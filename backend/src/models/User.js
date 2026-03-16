@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
       type: Date,
       required: false // Optional for now to avoid breaking existing users
     },
-    avatar: {
+    profilePictureUrl: {
       type: String,
       default: ""
     },

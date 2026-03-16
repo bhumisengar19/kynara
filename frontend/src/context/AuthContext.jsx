@@ -80,8 +80,26 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const updateProfile = async (formData) => {
+        try {
+            const res = await api.put("/auth/profile", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            const updatedUser = res.data.user;
+            
+            // Sync with local state + local storage
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            setUser(updatedUser);
+            
+            return { success: true, user: updatedUser };
+        } catch (err) {
+            console.error("Profile update failed", err);
+            return { success: false, error: err.response?.data?.message || "Update profile failed" };
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, token, login, register, logout, updateProfile, loading }}>
             {loading ? (
                 <div className="flex h-screen w-screen items-center justify-center bg-[#0F0B1F] text-white">
                     <div className="flex flex-col items-center gap-4">
