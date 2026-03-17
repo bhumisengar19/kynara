@@ -46,7 +46,14 @@ export const ChatProvider = ({ children }) => {
     const createChat = async () => {
         try {
             console.log("Attempting to create new chat...");
-            const res = await api.post("/chat/new");
+            
+            const hour = new Date().getHours();
+            let greeting = "Good Morning";
+            if (hour >= 12 && hour < 17) greeting = "Good Afternoon";
+            else if (hour >= 17 && hour < 21) greeting = "Good Evening";
+            else if (hour >= 21 || hour < 5) greeting = "Good Night";
+
+            const res = await api.post("/chat/new", { greeting });
             console.log("Create Chat Success:", res.data);
             const newChat = res.data;
             setChats((prev) => [newChat, ...prev]);

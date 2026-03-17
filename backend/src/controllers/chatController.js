@@ -15,10 +15,18 @@ const formatHistory = (messages) => {
 export const createNewChat = async (req, res) => {
   console.log("createNewChat called by user:", req.user?._id);
   try {
+    const { greeting } = req.body;
+    const initialGreeting = greeting ? `${greeting}! I'm Kynara. How can I help you today?` : "Hello! I'm Kynara. How can I help you today?";
+
     const chat = await Chat.create({
       user: req.user._id,
-      title: "New Chat",
-      messages: [],
+      title: "New Thread",
+      messages: [
+        {
+          role: "assistant",
+          content: initialGreeting
+        }
+      ],
     });
     console.log("Chat created successfully:", chat._id);
 

@@ -3,11 +3,21 @@ import { SplineScene } from "./ui/splite";
 import { Card } from "./ui/card"
 import { Bot, Sparkles } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 export function BotScene({ onInitialize }) {
     const { theme } = useTheme();
+    const { user } = useAuth(); // Get user for personalization
     const [splineError, setSplineError] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good Morning";
+        if (hour < 17) return "Good Afternoon";
+        if (hour < 21) return "Good Evening";
+        return "Good Night";
+    };
 
     const handleClick = async () => {
         setLoading(true);
@@ -47,7 +57,7 @@ export function BotScene({ onInitialize }) {
 
             <div className="relative z-10 text-center px-8 pb-12 mt-4 space-y-4">
                 <h1 className={`text-4xl md:text-6xl font-black tracking-tighter ${theme === 'dark' ? 'text-white drop-shadow-sm' : 'text-kynaraLight-text'}`}>
-                    Welcome to <span className={theme === 'dark' ? 'text-kynaraDark-lavender' : 'text-kynaraLight-pink'}>Kynara</span>
+                    {getGreeting()}, <span className={theme === 'dark' ? 'text-kynaraDark-lavender' : 'text-kynaraLight-pink'}>{user?.name?.split(' ')[0] || 'Explorer'}</span>
                 </h1>
                 <p className={`max-w-md mx-auto font-medium opacity-70 leading-relaxed text-sm ${theme === 'dark' ? 'text-white' : 'text-kynaraLight-text'}`}>
                     Your cosmic companion for intelligent conversations.

@@ -43,10 +43,9 @@ export default function ChatPage() {
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [deepSearch, setDeepSearch] = useState(false);
     const [conciseMode, setConciseMode] = useState(false);
-    const [showAvatar, setShowAvatar] = useState(false); // Hidden by default until activated
+    const [showAvatar, setShowAvatar] = useState(false);
     const [englishMode, setEnglishMode] = useState(false);
-
-    const speechRef = useRef(null); // To prevent GC of utterance
+    const utteranceRef = useRef(null);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -85,9 +84,29 @@ export default function ChatPage() {
         scrollToBottom();
     }, [messages, loading]);
 
-    // Pre-load voices for SpeechSynthesis
+    // Load Chat
     useEffect(() => {
-        if (!window.speechSynthesis) return;
+        if (!id) return;
+        const loadChat = async () => {
+            setMessages([]); // Clear previous messages
+            try {
+                const res = await api.get(`/chat/history/${id}`);
+                setMessages(res.data);
+                
+                // If it's a brand new chat with only the AI greeting, speak it
+                if (res.data.length === 1 && res.data[0].role === 'assistant' && voiceEnabled) {
+                    setTimeout(() => {
+                        speakResponse(res.data[0].content);
+                    }, 1000); // Small delay to ensure UI transition and voices are ready
+                }
+            } catch (err) {
+                console.error("Failed to load chat", err);
+            }
+        };
+        loadChat();
+    }, [id]);
+
+    useEffect(() => {
         const loadVoices = () => {
             window.speechSynthesis.getVoices();
         };
@@ -97,21 +116,6 @@ export default function ChatPage() {
             window.speechSynthesis.onvoiceschanged = null;
         };
     }, []);
-
-    // Load Chat
-    useEffect(() => {
-        if (!id) return;
-        const loadChat = async () => {
-            setMessages([]); // Clear previous messages
-            try {
-                const res = await api.get(`/chat/history/${id}`);
-                setMessages(res.data);
-            } catch (err) {
-                console.error("Failed to load chat", err);
-            }
-        };
-        loadChat();
-    }, [id]);
 
     const sendMessage = async () => {
         if (!input.trim() && attachments.length === 0) return;
@@ -203,73 +207,60 @@ export default function ChatPage() {
     };
 
     const speakResponse = (text) => {
-        console.log("speakResponse triggered with text:", text?.substring(0, 50) + "...");
-        if (!window.speechSynthesis) {
-            console.error("SpeechSynthesis NOT found in window");
-            return;
-        }
-
-        // Cancel any ongoing speech
+        // Stop any current speech
         window.speechSynthesis.cancel();
+        setIsSpeaking(false);
 
-        // Strip Markdown for cleaner speech
+        if (!text) return;
+
+        // Clean markdown for better TTS
         const cleanText = text
-            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links
-            .replace(/(\*\*|__)(.*?)\1/g, '$2')        // Remove bold
-            .replace(/(\*|_)(.*?)\1/g, '$2')          // Remove italic
-            .replace(/`{1,3}.*?`{1,3}/gs, '')         // Remove code blocks
-            .replace(/[#*>-]/g, ' ')                 // Remove list/header markers
-            .replace(/\n/g, ' ')                      // Newlines to spaces
+            .replace(/#{1,6}\s?/g, '') // Remove headers
+            .replace(/\*\*/g, '')      // Remove bold
+            .replace(/\*/g, '')       // Remove italic
+            .replace(/```[\s\S]*?```/g, 'Code block omitted') // skip code blocks
+            .replace(/`([^`]+)`/g, '$1') // inline code
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // links
             .trim();
 
-        console.log("Cleaned text for TTS:", cleanText?.substring(0, 50) + "...");
-
-        if (!cleanText) {
-            console.warn("No text left to speak after stripping markdown");
-            return;
-        }
+        if (!cleanText) return;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        speechRef.current = utterance; 
-        
+        utteranceRef.current = utterance; // Keep reference to prevent GC
+
+        // Pick a better voice
         const voices = window.speechSynthesis.getVoices();
-        // Fallback to simpler voice selection
-        const voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
-        
-        if (voice) {
-            console.log("Using voice:", voice.name);
-            utterance.voice = voice;
-        }
-        
-        utterance.lang = 'en-US';
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+        const preferredVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Premium') || v.lang === 'en-US');
+        if (preferredVoice) utterance.voice = preferredVoice;
 
         utterance.onstart = () => {
-            console.log("SpeechSynthesis STARTED successfully");
+            console.log("Speech started");
             setIsSpeaking(true);
         };
         utterance.onend = () => {
-            console.log("SpeechSynthesis COMPLETED naturally");
+            console.log("Speech ended");
             setIsSpeaking(false);
-            speechRef.current = null;
+            utteranceRef.current = null;
         };
-        utterance.onerror = (e) => {
-            console.error("SpeechSynthesis ERROR EVENT:", e.error, e);
+        utterance.onerror = (event) => {
+            console.error("Speech Error:", event);
             setIsSpeaking(false);
-            speechRef.current = null;
+            utteranceRef.current = null;
         };
 
-        // Some browsers need a resume() before speak() if it was ever interrupted
-        window.speechSynthesis.resume();
-        window.speechSynthesis.speak(utterance);
-        console.log("speechSynthesis.speak() called for text length:", cleanText.length);
+        // Short delay to prevent some browsers from canceling immediately
+        setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+        }, 50);
     };
 
     const toggleVoice = () => {
-        setVoiceEnabled(!voiceEnabled);
-        if (voiceEnabled) window.speechSynthesis.cancel();
+        const nextState = !voiceEnabled;
+        setVoiceEnabled(nextState);
+        if (!nextState) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+        }
     };
 
     const handleAction = async (action, originalMsg, msgId) => {
