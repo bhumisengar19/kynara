@@ -15,7 +15,8 @@ export default function AvatarPanel({
   toggleVoice,
   englishMode,
   setEnglishMode,
-  subtitle
+  subtitle,
+  feedback
 }) {
   const [mounted, setMounted] = useState(false);
   const { theme } = useTheme();
@@ -127,6 +128,39 @@ export default function AvatarPanel({
             )}
         </div>
       </div>
+      
+      {/* Coach Feedback Section */}
+      <AnimatePresence>
+          {englishMode && feedback && (
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              key={feedback.correction}
+              className={`mx-4 mb-4 p-4 rounded-2xl border shadow-lg backdrop-blur-md ${
+                feedback.correction.includes('Perfect') 
+                ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                : 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                 <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                   {feedback.correction.includes('Perfect') ? 'Grammar Check' : 'Corrected Sentence'}
+                 </span>
+                 {feedback.correction.includes('Perfect') && <CheckCircle size={12} />}
+              </div>
+              
+              <div className="text-[13px] font-bold leading-tight mb-2">
+                 {feedback.correction}
+              </div>
+              
+              {feedback.explanation && !feedback.correction.includes('Perfect') && (
+                <div className={`text-[11px] opacity-70 leading-relaxed border-t pt-2 mt-2 font-medium ${theme === 'dark' ? 'border-white/10' : 'border-black/5'}`}>
+                   Coach: {feedback.explanation}
+                </div>
+              )}
+            </motion.div>
+          )}
+      </AnimatePresence>
 
       {/* English Practice Topics (Only show if English Mode is on) */}
       <AnimatePresence>

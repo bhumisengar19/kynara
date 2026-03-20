@@ -6,6 +6,7 @@ import Background3D from "./components/Background3D";
 
 import ChatPage from "./pages/ChatPage";
 import ProfilePage from "./pages/ProfilePage";
+import EnglishPracticePage from "./pages/EnglishPracticePage";
 import { SidebarDemo } from "./components/SidebarDemo";
 import NightSkyBackground from "./components/NightSkyBackground";
 import BotanicalBackground from "./components/BotanicalBackground";
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/" element={<ChatPage />} />
           <Route path="/c/:id" element={<ChatPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/english-practice" element={<EnglishPracticePage />} />
           <Route path="/sidebar-demo" element={<div className="flex-1 flex items-center justify-center p-8 bg-black/20"><SidebarDemo /></div>} />
         </Routes>
       </div>

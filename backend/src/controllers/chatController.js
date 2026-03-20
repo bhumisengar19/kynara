@@ -281,24 +281,25 @@ export const sendMessage = async (req, res) => {
 
       let userMsg = (contextInfo ? `CONTEXT FROM ATTACHED FILES:\n${contextInfo}\n\nUSER MESSAGE: ` : "") + (message || "");
       
-      let systemInstructions = "";
       if (englishMode) {
-          systemInstructions = "You are an expert English Language Coach. Your primary job is to help the user practice speaking English. You MUST: 1) Subtly correct any grammar/vocabulary mistakes they made in their previous message. 2) Provide a better way to structure their sentence if applicable. 3) Keep your actual responses natural, engaging, and perfect for conversational practice. Do not break character.";
-      } else if (deepSearch) {
-        systemInstructions = "You are operating in DEEP SEARCH mode. You MUST perform an extremely deep, comprehensive, and highly detailed analysis. Think step-by-step and provide an exhaustive, multi-paragraph, and highly elaborate response utilizing structured reasoning. Make the answer as long and detailed as possible. Do not mention you are following a system command.";
-      } else if (conciseMode) {
-        systemInstructions = "You MUST provide a direct, single-word or single-sentence answer only. Be extremely concise. Do not explain unless explicitly asked. Do not mention you are following a system command.";
-      }
-      
-      if (!englishMode) {
+          const historyText = formatHistory(chat.messages.slice(0, -1));
+          prompt = PROMPTS.ENGLISH_COACH(historyText, message);
+      } else {
+          let systemInstructions = "";
+          if (deepSearch) {
+            systemInstructions = "You are operating in DEEP SEARCH mode. You MUST perform an extremely deep, comprehensive, and highly detailed analysis. Think step-by-step and provide an exhaustive, multi-paragraph, and highly elaborate response utilizing structured reasoning. Make the answer as long and detailed as possible. Do not mention you are following a system command.";
+          } else if (conciseMode) {
+            systemInstructions = "You MUST provide a direct, single-word or single-sentence answer only. Be extremely concise. Do not explain unless explicitly asked. Do not mention you are following a system command.";
+          }
+          
           if (persona === 'creative') {
             systemInstructions += "\nRespond in a highly creative, engaging, playful, and imaginative tone. Use vivid language.";
           } else if (persona === 'technical') {
             systemInstructions += "\nRespond in a highly technical, precise, and analytical tone. Focus on accuracy, structure, and professional domain knowledge.";
           }
+          
+          prompt = PROMPTS.MEMORY_CHAT(history, userMsg, systemInstructions);
       }
-      
-      prompt = PROMPTS.MEMORY_CHAT(history, userMsg, systemInstructions);
     }
 
     // Parallel Execution: Generate Response + Title (if first message and not an action)

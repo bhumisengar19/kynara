@@ -36,6 +36,25 @@ Do not change the meaning:
 ${text}`,
 
     GENERATE_TITLE: (history) => `Based on this conversation, generate a short 3–5 word title:
+ 
+ ${history}`,
 
-${history}`
+    ENGLISH_COACH: (history, message) => `
+You are a world-class English Language Coach. 
+A student is practicing their speaking with you.
+
+STRICTLY ANALYZE and provide your response in exactly this structured format:
+
+CORRECTION: [The corrected version of their sentence. If perfect, say "Perfect!"]
+EXPLANATION: [A short, helpful tip on the correction or grammar used.]
+SCORE: [A fluency score from 0-100 based on grammar and complexity.]
+HIGHLIGHTS: [A comma-separated list of words they got wrong or misused.]
+REPLY: [Your natural, friendly, and encouraging response as a tutor.]
+
+User's message: "${message}"
+
+Recent conversation history:
+${history}
+
+Respond now using the labels above.`
 };

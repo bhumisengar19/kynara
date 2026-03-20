@@ -45,7 +45,9 @@ export default function ChatPage() {
     const [conciseMode, setConciseMode] = useState(false);
     const [showAvatar, setShowAvatar] = useState(false);
     const [englishMode, setEnglishMode] = useState(false);
+    const [englishFeedback, setEnglishFeedback] = useState(null);
     const utteranceRef = useRef(null);
+    const voiceTranscriptRef = useRef("");
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -107,6 +109,10 @@ export default function ChatPage() {
     }, [id]);
 
     useEffect(() => {
+        if (!englishMode) setEnglishFeedback(null);
+    }, [englishMode]);
+
+    useEffect(() => {
         const loadVoices = () => {
             window.speechSynthesis.getVoices();
         };
@@ -117,12 +123,13 @@ export default function ChatPage() {
         };
     }, []);
 
-    const sendMessage = async () => {
-        if (!input.trim() && attachments.length === 0) return;
+    const sendMessage = async (overrideInput) => {
+        const textToSend = typeof overrideInput === 'string' ? overrideInput : input;
+        if (!textToSend.trim() && attachments.length === 0) return;
 
         const userMessage = {
             role: "user",
-            content: input,
+            content: textToSend,
             attachments: attachments
         };
 
@@ -151,7 +158,24 @@ export default function ChatPage() {
             });
 
             clearTimeout(timer);
-            const { reply, newTitle } = res.data;
+            let { reply, newTitle } = res.data;
+            
+            if (englishMode) {
+                // Parse correction and explanation
+                const corrMatch = reply.match(/CORRECTION:\s*(.*?)(?=\n|EXPLANATION:|$)/i);
+                const explMatch = reply.match(/EXPLANATION:\s*(.*?)(?=\n|$)/i);
+                
+                if (corrMatch) {
+                    const feedback = {
+                        correction: corrMatch[1].trim(),
+                        explanation: explMatch ? explMatch[1].trim() : ""
+                    };
+                    setEnglishFeedback(feedback);
+                    // Remove the correction block from chat view for a cleaner thread
+                    reply = reply.replace(/CORRECTION:[\s\S]*?EXPLANATION:.*?(\n\n|\n|$)/i, "").trim();
+                }
+            }
+
             setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
 
             if (newTitle) {
@@ -196,11 +220,20 @@ export default function ChatPage() {
         recognition.interimResults = false;
         recognition.lang = 'en-US';
 
-        recognition.onstart = () => setIsListening(true);
-        recognition.onend = () => setIsListening(false);
+        recognition.onstart = () => {
+            setIsListening(true);
+            voiceTranscriptRef.current = "";
+        };
+        recognition.onend = () => {
+            setIsListening(false);
+            if (englishMode && voiceTranscriptRef.current.trim()) {
+                setTimeout(() => sendMessage(voiceTranscriptRef.current), 300);
+            }
+        };
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
-            setInput(prev => prev + (prev ? ' ' : '') + transcript);
+            voiceTranscriptRef.current = transcript;
+            setInput(transcript);
         };
 
         recognition.start();
@@ -731,6 +764,7 @@ export default function ChatPage() {
                             englishMode={englishMode}
                             setEnglishMode={setEnglishMode}
                             subtitle={currentSubtitle}
+                            feedback={englishFeedback}
                         />
                    </motion.div>
               )}

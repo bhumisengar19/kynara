@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate, useLocation, Link } from "react-router-dom";
 import {
     Plus, MessageSquare, Archive, Trash2, RotateCcw,
-    FolderArchive, User, Search, LogOut, Edit2, Check, X
+    FolderArchive, User, Search, LogOut, Edit2, Check, X, GraduationCap
 } from "lucide-react";
 import { useChatContext } from "../context/ChatContext";
 import { useAuth } from "../context/AuthContext";
@@ -83,6 +83,25 @@ export default function Sidebar() {
                         <Plus size={16} className="transition-transform group-hover:rotate-90" />
                     </div>
                     New Thread
+                </button>
+
+                <button
+                    onClick={() => navigate('/english-practice')}
+                    className={`w-full group mt-2 mb-5 px-4 py-3 rounded-xl flex items-center gap-3 transition-all transform active:scale-[0.98] border shadow-sm ${theme === 'dark'
+                        ? 'bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border-white/[0.05] hover:border-indigo-500/40 text-indigo-400 font-bold'
+                        : 'bg-gradient-to-br from-indigo-50 to-purple-50 border-black/5 hover:border-indigo-200 text-indigo-600 font-bold'
+                    }`}
+                >
+                    <div className={`p-1.5 rounded-lg transition-all shadow-sm ${theme === 'dark' ? 'bg-indigo-500/20 text-indigo-400 group-hover:scale-110' : 'bg-white text-indigo-600 group-hover:scale-110 shadow-indigo-100'}`}>
+                        <GraduationCap size={16} />
+                    </div>
+                    <div className="flex flex-col items-start leading-none">
+                        <span className="text-[13px]">English Coach</span>
+                        <span className="text-[9px] uppercase tracking-wider opacity-60 mt-0.5">Live Practice</span>
+                    </div>
+                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    </div>
                 </button>
 
                 {/* SEARCH */}

@@ -13,50 +13,73 @@ export function AvatarModel({ isSpeaking, isListening, status }) {
   useFrame((state) => {
     if (!group.current) return;
 
-    // Head look-at cursor (subtle mouse follow)
-    const targetX = (state.mouse.x * Math.PI) / 6;
-    const targetY = (state.mouse.y * Math.PI) / 6;
-    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetX, 0.1);
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -targetY, 0.1);
-
     const time = state.clock.elapsedTime;
-    
+
+    // Subtle breathing/floating animation (Production quality)
+    group.current.position.y = -0.2 + Math.sin(time * 1.5) * 0.08;
+    group.current.rotation.z = Math.sin(time * 0.5) * 0.05;
+
+    // Head look-at cursor (subtle mouse follow)
+    const targetX = (state.mouse.x * Math.PI) / 8;
+    const targetY = (state.mouse.y * Math.PI) / 8;
+    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetX, 0.05);
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -targetY, 0.05);
+
     // Blinking logic (procedural)
     const isBlinking = (time % 4) < 0.15;
     if (leftEye.current && rightEye.current) {
-        leftEye.current.scale.y = isBlinking ? 0.1 : 1;
-        rightEye.current.scale.y = isBlinking ? 0.1 : 1;
+        leftEye.current.scale.y = isBlinking ? 0.05 : 1;
+        rightEye.current.scale.y = isBlinking ? 0.05 : 1;
     }
 
-    // Mouth synthesis movement
+    // Mouth synthesis movement & Emotive Head Nodding
     if (mouth.current && aura.current) {
         if (isSpeaking) {
-            // Jitter scale to simulate talking
-            const talkScale = 0.2 + Math.random() * 0.8;
-            mouth.current.scale.y = talkScale;
-            mouth.current.material.emissiveIntensity = 2;
-            aura.current.distort = 0.6; // Aura gets chaotic
-            aura.current.speed = 5;
+            // Simulated speech jitter syncopated with a sine wave
+            const wordIntensity = Math.sin(time * 15) * 0.5 + 0.5;
+            const jitter = Math.random() * 0.4 + 0.6;
+            mouth.current.scale.y = 0.2 + (wordIntensity * jitter * 1.2);
+            mouth.current.material.emissiveIntensity = 2 + (wordIntensity * 3);
+            
+            // Subtle "talking" head movements
+            group.current.rotation.x += Math.sin(time * 12) * 0.03;
+            group.current.rotation.y += Math.cos(time * 10) * 0.02;
+            
+            aura.current.distort = 0.6 + (wordIntensity * 0.2);
+            aura.current.speed = 4 + (wordIntensity * 4);
         } else {
             // Calm idle mouth
-            mouth.current.scale.y = THREE.MathUtils.lerp(mouth.current.scale.y, 0.2, 0.2);
+            mouth.current.scale.y = THREE.MathUtils.lerp(mouth.current.scale.y, 0.2, 0.1);
             mouth.current.material.emissiveIntensity = 0.5;
-            aura.current.distort = 0.2; // Aura calms down
-            aura.current.speed = 1.5;
+            aura.current.distort = THREE.MathUtils.lerp(aura.current.distort, 0.2, 0.1);
+            aura.current.speed = 1.6;
         }
     }
 
-    // Dynamic State Colors
+    // Dynamic State Colors with Emissive Pulse
     [leftEye, rightEye, mouth].forEach(ref => {
         if (!ref.current) return;
         
         const targetColor = new THREE.Color();
-        if (isListening) targetColor.set('#ef4444'); // Red Listening
-        else if (status !== 'online') targetColor.set('#eab308'); // Yellow Thinking/Generating
-        else targetColor.set('#c084fc'); // Idle Lavender
+        let glowIntensity = 2;
 
-        ref.current.material.color.lerp(targetColor, 0.1);
-        ref.current.material.emissive.lerp(targetColor, 0.1);
+        if (isListening) {
+             targetColor.set('#f43f5e'); // Rose 500
+             glowIntensity = 2 + Math.sin(time * 10);
+        } else if (status !== 'online') {
+             targetColor.set('#fbbf24'); // Amber 400
+             glowIntensity = 3;
+        } else if (isSpeaking) {
+             targetColor.set('#6366f1'); // Indigo 500
+             glowIntensity = 4;
+        } else {
+             targetColor.set('#c084fc'); // Purple 400
+             glowIntensity = 1 + Math.sin(time * 2) * 0.5;
+        }
+
+        ref.current.material.color.lerp(targetColor, 0.05);
+        ref.current.material.emissive.lerp(targetColor, 0.05);
+        ref.current.material.emissiveIntensity = THREE.MathUtils.lerp(ref.current.material.emissiveIntensity, glowIntensity, 0.1);
     });
   });
 
