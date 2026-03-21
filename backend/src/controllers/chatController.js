@@ -284,6 +284,7 @@ export const sendMessage = async (req, res) => {
       if (englishMode) {
           const historyText = formatHistory(chat.messages.slice(0, -1));
           prompt = PROMPTS.ENGLISH_COACH(historyText, message);
+          console.log(`[ENGLISH_COACH] Prompt generated for message: "${message}"`);
       } else {
           let systemInstructions = "";
           if (deepSearch) {
@@ -315,6 +316,10 @@ export const sendMessage = async (req, res) => {
     }
 
     const [reply, generatedTitle] = await Promise.all([replyPromise, titlePromise]);
+    
+    if (englishMode) {
+        console.log(`[ENGLISH_COACH] AI Reply: ${reply.substring(0, 100)}...`);
+    }
 
     // Add assistant response
     chat.messages.push({

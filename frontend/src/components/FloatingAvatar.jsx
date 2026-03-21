@@ -15,9 +15,8 @@ export function AvatarModel({ isSpeaking, isListening, status }) {
 
     const time = state.clock.elapsedTime;
 
-    // Subtle breathing/floating animation (Production quality)
-    group.current.position.y = -0.2 + Math.sin(time * 1.5) * 0.08;
-    group.current.rotation.z = Math.sin(time * 0.5) * 0.05;
+    // Subtle breathing animation (Idle)
+    group.current.position.y = -0.2 + Math.sin(time * 1.5) * 0.05;
 
     // Head look-at cursor (subtle mouse follow)
     const targetX = (state.mouse.x * Math.PI) / 8;
@@ -28,58 +27,44 @@ export function AvatarModel({ isSpeaking, isListening, status }) {
     // Blinking logic (procedural)
     const isBlinking = (time % 4) < 0.15;
     if (leftEye.current && rightEye.current) {
-        leftEye.current.scale.y = isBlinking ? 0.05 : 1;
-        rightEye.current.scale.y = isBlinking ? 0.05 : 1;
+        leftEye.current.scale.y = isBlinking ? 0.1 : 1;
+        rightEye.current.scale.y = isBlinking ? 0.1 : 1;
     }
 
-    // Mouth synthesis movement & Emotive Head Nodding
+    // Mouth synthesis movement & Head Nodding
     if (mouth.current && aura.current) {
         if (isSpeaking) {
-            // Simulated speech jitter syncopated with a sine wave
-            const wordIntensity = Math.sin(time * 15) * 0.5 + 0.5;
-            const jitter = Math.random() * 0.4 + 0.6;
-            mouth.current.scale.y = 0.2 + (wordIntensity * jitter * 1.2);
-            mouth.current.material.emissiveIntensity = 2 + (wordIntensity * 3);
+            // Simulated speech jitter
+            const jitter = Math.sin(time * 25) * 0.4 + 0.6;
+            mouth.current.scale.y = 0.2 + (jitter * 0.8);
+            mouth.current.material.emissiveIntensity = 2 + Math.random();
             
-            // Subtle "talking" head movements
-            group.current.rotation.x += Math.sin(time * 12) * 0.03;
-            group.current.rotation.y += Math.cos(time * 10) * 0.02;
+            // Add subtle "nodding" while speaking
+            group.current.rotation.x += Math.sin(time * 10) * 0.02;
             
-            aura.current.distort = 0.6 + (wordIntensity * 0.2);
-            aura.current.speed = 4 + (wordIntensity * 4);
+            aura.current.distort = 0.6 + Math.sin(time * 5) * 0.1;
+            aura.current.speed = 5;
         } else {
             // Calm idle mouth
             mouth.current.scale.y = THREE.MathUtils.lerp(mouth.current.scale.y, 0.2, 0.1);
             mouth.current.material.emissiveIntensity = 0.5;
-            aura.current.distort = THREE.MathUtils.lerp(aura.current.distort, 0.2, 0.1);
-            aura.current.speed = 1.6;
+            aura.current.distort = 0.2;
+            aura.current.speed = 1.5;
         }
     }
 
-    // Dynamic State Colors with Emissive Pulse
+    // Dynamic State Colors
     [leftEye, rightEye, mouth].forEach(ref => {
         if (!ref.current) return;
         
         const targetColor = new THREE.Color();
-        let glowIntensity = 2;
-
-        if (isListening) {
-             targetColor.set('#f43f5e'); // Rose 500
-             glowIntensity = 2 + Math.sin(time * 10);
-        } else if (status !== 'online') {
-             targetColor.set('#fbbf24'); // Amber 400
-             glowIntensity = 3;
-        } else if (isSpeaking) {
-             targetColor.set('#6366f1'); // Indigo 500
-             glowIntensity = 4;
-        } else {
-             targetColor.set('#c084fc'); // Purple 400
-             glowIntensity = 1 + Math.sin(time * 2) * 0.5;
-        }
+        if (isListening) targetColor.set('#f43f5e'); // Rose 500
+        else if (status !== 'online') targetColor.set('#fbbf24'); // Amber 400
+        else if (isSpeaking) targetColor.set('#818cf8'); // Indigo 400
+        else targetColor.set('#c084fc'); // Purple 400 (Idle)
 
         ref.current.material.color.lerp(targetColor, 0.05);
         ref.current.material.emissive.lerp(targetColor, 0.05);
-        ref.current.material.emissiveIntensity = THREE.MathUtils.lerp(ref.current.material.emissiveIntensity, glowIntensity, 0.1);
     });
   });
 
@@ -116,11 +101,23 @@ export function AvatarModel({ isSpeaking, isListening, status }) {
         <mesh ref={aura} position={[0, 0, 0]} scale={[0.8, 0.8, 0.8]}>
             <sphereGeometry args={[0.6, 32, 32]} />
             <MeshDistortMaterial
-                color={isListening ? "#ef4444" : status !== 'online' ? "#eab308" : "#818cf8"}
+                color={isListening ? "#f43f5e" : status !== 'online' ? "#fbbf24" : "#818cf8"}
                 transparent
                 opacity={0.3}
                 distort={0.4}
-                speed={2}
+                speed={status !== 'online' ? 10 : 2}
+            />
+        </mesh>
+
+        {/* Neural Halo (Circular Aesthetic) */}
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.8, 0.01, 16, 100]} />
+            <meshStandardMaterial 
+                color={isListening ? "#f43f5e" : status !== 'online' ? "#fbbf24" : "#818cf8"} 
+                emissive={isListening ? "#f43f5e" : status !== 'online' ? "#fbbf24" : "#818cf8"}
+                emissiveIntensity={2}
+                transparent
+                opacity={0.2}
             />
         </mesh>
 

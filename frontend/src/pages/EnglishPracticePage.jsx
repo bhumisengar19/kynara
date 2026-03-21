@@ -1,46 +1,13 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { Environment, ContactShadows, PerspectiveCamera } from '@react-three/drei';
-import { Mic, MicOff, Volume2, Trophy, AlertCircle, BookOpen, ArrowLeft, History, Zap, Sparkles, Brain, Layout, BarChart, XCircle } from 'lucide-react';
+import { Mic, MicOff, Volume2, Trophy, AlertCircle, BookOpen, ArrowLeft, History, Zap, Award, Star, Download, Linkedin, Share2, X, ChevronRight, CheckCircle2, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarModel } from '../components/FloatingAvatar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
-
-// --- Production Level Voice Waveform Component ---
-const VoiceWaveform = ({ active }) => {
-    const canvasRef = useRef(null);
-    useEffect(() => {
-        if (!active) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        let animationFrameId;
-        const bars = 20;
-        const barWidth = 4;
-        const barGap = 4;
-        const heights = new Array(bars).fill(10);
-
-        const render = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#6366f1';
-            for (let i = 0; i < bars; i++) {
-                heights[i] = Math.max(5, Math.random() * (active ? 40 : 10));
-                const x = i * (barWidth + barGap);
-                const y = (canvas.height - heights[i]) / 2;
-                ctx.beginPath();
-                ctx.roundRect(x, y, barWidth, heights[i], 2);
-                ctx.fill();
-            }
-            animationFrameId = requestAnimationFrame(render);
-        };
-        render();
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [active]);
-
-    return <canvas ref={canvasRef} width={160} height={60} className="opacity-80" />;
-};
 
 export default function EnglishPracticePage() {
     const { user } = useAuth();
@@ -51,44 +18,180 @@ export default function EnglishPracticePage() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [status, setStatus] = useState('online');
     const [transcript, setTranscript] = useState("");
-    const [mistakes, setMistakes] = useState(() => {
-        const saved = localStorage.getItem('kynara_coach_mistakes');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [mistakes, setMistakes] = useState([]);
+    const [sessionMessages, setSessionMessages] = useState([]);
     const [currentChatId, setCurrentChatId] = useState(null);
-    const [lastFeedback, setLastFeedback] = useState(null);
-    const [dailyCalls, setDailyCalls] = useState(() => {
-        const saved = localStorage.getItem('kynara_coach_calls');
-        const today = new Date().toDateString();
-        if (saved) {
-            const data = JSON.parse(saved);
-            if (data.date === today) return data.count;
-        }
-        return 0;
-    });
-
-    const utteranceRef = useRef(null);
+    const [lastCorrection, setLastCorrection] = useState(null);
+    const [dailyLimitReached, setDailyLimitReached] = useState(false);
+    const [usageCount, setUsageCount] = useState(0);
+    
+    // Gamification State
+    const [xp, setXp] = useState(0);
+    const [streak, setStreak] = useState(0);
+    const [level, setLevel] = useState("Beginner");
+    const [combo, setCombo] = useState(0);
+    const [progress, setProgress] = useState(0); // Daily Goal progress
+    const [showReward, setShowReward] = useState(null); // { type, amount }
+    const [showBadges, setShowBadges] = useState(false);
+    const [earnedBadges, setEarnedBadges] = useState([]);
+    
+    // Badge Definitions
+    const ALL_BADGES = [
+        { id: 'first_step', name: 'First Step', desc: 'Complete 1 practice session', icon: <Award className="text-blue-400" />, requirement: (s) => s.count >= 1 },
+        { id: 'on_fire', name: 'On Fire', desc: 'Maintain a 3-day streak', icon: <Zap className="text-orange-500" />, requirement: (s) => s.streak >= 3 },
+        { id: 'level_master', name: 'Rising Star', desc: 'Reach Level 2 (Intermediate)', icon: <Star className="text-yellow-400" />, requirement: (s) => s.xp >= 100 },
+        { id: 'perfect_ten', name: 'Perfect Ten', desc: 'Get a x10 combo', icon: <CheckCircle2 className="text-emerald-400" />, requirement: (s) => (s.maxCombo || 0) >= 10 },
+        { id: 'legend', name: 'AI Legend', desc: 'Reach 1000 XP', icon: <Trophy className="text-purple-400" />, requirement: (s) => s.xp >= 1000 },
+    ];
+    
     const recognitionRef = useRef(null);
-    const limitReached = dailyCalls >= 15;
+    const utteranceRef = useRef(null);
+    const scrollRef = useRef(null);
+    const audioContextRef = useRef(null);
+    const analystRef = useRef(null);
 
-    // --- Persistence & Initialization ---
-    useEffect(() => {
-        localStorage.setItem('kynara_coach_mistakes', JSON.stringify(mistakes));
-    }, [mistakes]);
-
+    // DAILY STATS & GAMIFICATION LOGIC
     useEffect(() => {
         const today = new Date().toDateString();
-        localStorage.setItem('kynara_coach_calls', JSON.stringify({ date: today, count: dailyCalls }));
-    }, [dailyCalls]);
+        const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v2') || '{}');
+        
+        if (!stored.date) {
+            // First time initialization
+            const initial = { 
+                date: today, 
+                count: 0, 
+                xp: 0, 
+                streak: 0, 
+                lastActive: "", 
+                sentencesToday: 0 
+            };
+            localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(initial));
+            return;
+        }
 
+        // Streak check
+        let currentStreak = stored.streak || 0;
+        const lastActive = stored.lastActive;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yestStr = yesterday.toDateString();
+
+        if (lastActive !== today && lastActive !== yestStr && lastActive !== "") {
+            currentStreak = 0; // Streak reset
+        }
+
+        // Reset sentences if new day
+        if (stored.date !== today) {
+            stored.date = today;
+            stored.count = 0;
+            stored.sentencesToday = 0;
+            localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
+        }
+
+        setXp(stored.xp || 0);
+        setStreak(currentStreak);
+        setUsageCount(stored.count || 0);
+        setProgress(stored.sentencesToday || 0);
+        setEarnedBadges(stored.badges || []);
+        
+        // Re-check badge earnings
+        checkBadges(stored);
+
+        if (stored.count >= 15) setDailyLimitReached(true);
+        calculateLevel(stored.xp || 0);
+    }, []);
+
+    const checkBadges = (stats) => {
+        const newlyEarned = [];
+        const currentBadges = stats.badges || [];
+        
+        ALL_BADGES.forEach(badge => {
+            if (!currentBadges.includes(badge.id) && badge.requirement(stats)) {
+                newlyEarned.push(badge.id);
+            }
+        });
+
+        if (newlyEarned.length > 0) {
+            const updatedBadges = [...currentBadges, ...newlyEarned];
+            const updated = { ...stats, badges: updatedBadges };
+            localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(updated));
+            setEarnedBadges(updatedBadges);
+            setShowReward({ type: "Badge Unlocked!", amount: newlyEarned.length });
+        }
+    };
+
+    const awardXP = (amount, type = "XP") => {
+        const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v2') || '{}');
+        const newXp = (stored.xp || 0) + amount;
+        const today = new Date().toDateString();
+        
+        if (stored.lastActive !== today) {
+            stored.streak = (stored.streak || 0) + 1;
+            setStreak(stored.streak);
+        }
+
+        stored.xp = newXp;
+        stored.lastActive = today;
+        localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
+        
+        setXp(newXp);
+        calculateLevel(newXp);
+        checkBadges(stored);
+        setShowReward({ type, amount });
+        setTimeout(() => setShowReward(null), 2500);
+    };
+
+    const handleSentenceGamify = (isCorrect) => {
+        const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v2') || '{}');
+        const newProg = (stored.sentencesToday || 0) + 1;
+        stored.sentencesToday = newProg;
+        
+        const newCombo = isCorrect ? combo + 1 : 0;
+        setCombo(newCombo);
+        
+        if (newCombo > (stored.maxCombo || 0)) {
+            stored.maxCombo = newCombo;
+        }
+
+        localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
+        setProgress(newProg);
+
+        if (isCorrect) {
+            awardXP(10 + (newCombo > 2 ? 5 : 0), newCombo > 2 ? `Combo x${newCombo}!` : "Correct");
+        } else {
+            awardXP(5, "Attempt");
+        }
+
+        if (newProg === 5) {
+            awardXP(20, "Daily Goal Met! 🎉");
+        }
+    };
+
+    const calculateLevel = (currentXp) => {
+        if (currentXp >= 700) setLevel("Fluent");
+        else if (currentXp >= 300) setLevel("Advanced");
+        else if (currentXp >= 100) setLevel("Intermediate");
+        else setLevel("Beginner");
+    };
+
+    const incrementUsage = () => {
+        const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v2') || '{}');
+        stored.count = (stored.count || 0) + 1;
+        localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
+        setUsageCount(stored.count);
+        if (stored.count >= 15) setDailyLimitReached(true);
+    };
+
+    // Initialize English Practice Session
     useEffect(() => {
         const initSession = async () => {
             try {
                 const res = await api.post("/chat/new", { 
-                    greeting: "I'm Kynara, your dedicated English Coach. We have a 15-interaction daily limit to keep our focus sharp. Ready to start?" 
+                    greeting: "Hello! I'm your English Coach. Let's practice speaking today. What's on your mind?" 
                 });
                 setCurrentChatId(res.data._id);
-                speakResponse("I'm Kynara, your dedicated English Coach. Ready to start our session?");
+                setSessionMessages(res.data.messages);
+                speakResponse("Hello! I'm your English Coach. Let's practice speaking today. What's on your mind?");
             } catch (err) {
                 console.error("Failed to start session:", err);
             }
@@ -97,28 +200,40 @@ export default function EnglishPracticePage() {
         return () => window.speechSynthesis.cancel();
     }, []);
 
-    // --- Voice Logic ---
     const speakResponse = (text) => {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Clean markdown/labels
+        const cleanText = text
+            .replace(/CORRECTION:[\s\S]*?EXPLANATION:.*?(\n|$)/i, "")
+            .replace(/\*/g, "")
+            .trim();
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
         utteranceRef.current = utterance;
+        
         const voices = window.speechSynthesis.getVoices();
         const preferredVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Google') || v.name.includes('Natural')));
         if (preferredVoice) utterance.voice = preferredVoice;
+
         utterance.onstart = () => setIsSpeaking(true);
         utterance.onend = () => setIsSpeaking(false);
-        setTimeout(() => window.speechSynthesis.speak(utterance), 500); // Thinking delay
+        utterance.onerror = () => setIsSpeaking(false);
+        
+        window.speechSynthesis.speak(utterance);
     };
 
     const handleVoiceInput = () => {
-        if (limitReached) return;
         if (isListening) {
             recognitionRef.current?.stop();
             return;
         }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) return alert("Browser not supported");
+        if (!SpeechRecognition) {
+            alert("Speech recognition not supported in this browser.");
+            return;
+        }
 
         const recognition = new SpeechRecognition();
         recognitionRef.current = recognition;
@@ -130,17 +245,26 @@ export default function EnglishPracticePage() {
             setIsListening(true);
             setTranscript("");
         };
-        recognition.onresult = (e) => setTranscript(e.results[0][0].transcript);
+
+        recognition.onresult = (event) => {
+            const currentTranscript = event.results[0][0].transcript;
+            setTranscript(currentTranscript);
+        };
+
         recognition.onend = () => {
             setIsListening(false);
-            if (transcript.trim()) submitToCoach(transcript);
+            if (transcript.trim()) {
+                submitToCoach(transcript);
+            }
         };
+
         recognition.start();
     };
 
     const submitToCoach = async (text) => {
-        if (limitReached || !currentChatId) return;
+        if (!currentChatId || dailyLimitReached) return;
         setStatus('thinking');
+        incrementUsage();
         
         try {
             const res = await api.post("/chat/send", {
@@ -150,33 +274,53 @@ export default function EnglishPracticePage() {
             });
 
             const { reply } = res.data;
-            setDailyCalls(prev => prev + 1);
-
-            // Single API call robust parsing
-            const corr = (reply.match(/CORRECTION:\s*(.*?)(?=\n|EXPLANATION:|$)/i) || [])[1]?.trim();
-            const expl = (reply.match(/EXPLANATION:\s*(.*?)(?=\n|SCORE:|$)/i) || [])[1]?.trim();
-            const score = (reply.match(/SCORE:\s*(.*?)(?=\n|HIGHLIGHTS:|$)/i) || [])[1]?.trim();
-            const highlights = (reply.match(/HIGHLIGHTS:\s*(.*?)(?=\n|REPLY:|$)/i) || [])[1]?.trim();
-            const ttsReply = (reply.match(/REPLY:\s*([\s\S]*)$/i) || [])[1]?.trim() || reply;
-
-            const feedback = {
-                id: Date.now(),
-                wrong: text,
-                correct: corr || "Perfect!",
-                explanation: expl || "",
-                score: parseInt(score) || 85,
-                highlights: highlights || ""
-            };
-
-            setLastFeedback(feedback);
-            if (corr && !corr.includes('Perfect')) {
-                setMistakes(prev => [feedback, ...prev]);
+            
+            // Parse feedback
+            const corrMatch = reply.match(/CORRECTION:\s*(.*?)(?=\n|EXPLANATION:|$)/i);
+            const explMatch = reply.match(/EXPLANATION:\s*(.*?)(?=\n|$)/i);
+            
+            if (corrMatch && !corrMatch[1].includes('Perfect')) {
+                const newMistake = {
+                    id: Date.now(),
+                    wrong: text,
+                    correct: corrMatch[1].trim(),
+                    explanation: explMatch ? explMatch[1].trim() : ""
+                };
+                setMistakes(prev => [newMistake, ...prev]);
+                setLastCorrection(newMistake);
+                handleSentenceGamify(false);
+            } else {
+                setLastCorrection({ status: 'perfect' });
+                handleSentenceGamify(true);
             }
 
-            speakResponse(ttsReply);
+            // Clean reply for rendering
+            let cleanReply = reply.replace(/CORRECTION:[\s\S]*?EXPLANATION:.*?(\n\n|\n|$)/i, "").trim();
+            
+            // Fallback: If AI only gave correction but zero conversation, use a default fallback or keep it raw
+            if (!cleanReply && !reply.includes('CORRECTION:')) {
+                cleanReply = reply;
+            } else if (!cleanReply) {
+                cleanReply = "I understand. Tell me more about that!"; // Default bridge if AI forgets to converse
+            }
+
+            setSessionMessages(prev => [...prev, 
+                { role: 'user', content: text },
+                { role: 'assistant', content: cleanReply }
+            ]);
+            
+            // Calculate a simple fluency score
+            const fluency = Math.max(0, 100 - (mistakes.length * 5) + (sessionMessages.length * 2));
+            
+            // Simulate thinking delay before voice
+            setTimeout(() => {
+                speakResponse(cleanReply);
+            }, 800);
+
             setStatus('online');
+            setTranscript("");
         } catch (err) {
-            console.error(err);
+            console.error("Coach fetch failed:", err);
             setStatus('online');
         }
     };
@@ -184,189 +328,332 @@ export default function EnglishPracticePage() {
     return (
         <div className={`fixed inset-0 z-[100] flex flex-col overflow-hidden ${theme === 'dark' ? 'bg-[#050508]' : 'bg-slate-50'}`}>
             
-            {/* --- Premium Header --- */}
-            <header className="flex items-center justify-between p-6 border-b border-white/5 backdrop-blur-3xl bg-black/20 z-10">
+            {/* Header */}
+            <header className="flex items-center justify-between p-6 border-b border-white/5 backdrop-blur-xl bg-black/20 z-10">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/chat')} className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white/70">
+                    <button 
+                        onClick={() => navigate('/chat')}
+                        className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white/70"
+                    >
                         <ArrowLeft size={20} />
                     </button>
-                    <div>
-                        <h2 className="text-xl font-black text-white tracking-tighter flex items-center gap-2">
-                           KYNARA <span className="text-indigo-500">COACH</span>
+            <div>
+                        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                            English Practice <Zap className="text-indigo-400 fill-indigo-400/20" size={16} />
                         </h2>
-                        <div className="flex items-center gap-2">
-                            <div className="flex gap-0.5">
-                                {[1,2,3,4,5].map(i => (
-                                    <div key={i} className={`w-3 h-1 rounded-full ${dailyCalls >= i * 3 ? 'bg-indigo-500' : 'bg-white/10'}`} />
-                                ))}
+                        <div className="flex items-center gap-3">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-white/40">Neural Voice Session</p>
+                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            <div className="flex items-center gap-1.5 text-orange-400 text-[11px] font-black uppercase tracking-wider">
+                                <motion.span 
+                                    animate={{ scale: [1, 1.2, 1] }} 
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                >🔥</motion.span> {streak} Day Streak
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">
-                                Session Limit: {dailyCalls}/15
-                            </span>
                         </div>
                     </div>
                 </div>
+
                 <div className="flex items-center gap-6">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Fluency Score</p>
-                        <p className="text-xl font-black text-white">{lastFeedback?.score || (mistakes.length > 0 ? 78 : '--')}%</p>
+                    <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Rank: {level}</span>
+                            <div className="px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/20 text-[10px] font-bold text-indigo-300">
+                                {xp} XP
+                            </div>
+                        </div>
+                        <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(xp % 100)}%` }}
+                                className="h-full bg-indigo-500"
+                            />
+                        </div>
                     </div>
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                        <BarChart size={20} />
+                    <motion.button 
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowBadges(true)}
+                        className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 relative"
+                    >
+                        <Trophy size={20} />
+                        {earnedBadges.length > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+                                {earnedBadges.length}
+                            </span>
+                        )}
+                    </motion.button>
+                    <div className="flex -space-x-2">
+                        {[1,2,3].map(i => (
+                            <div key={i} className="w-8 h-8 rounded-full border-2 border-[#050508] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
+                                {String.fromCharCode(64+i)}
+                            </div>
+                        ))}
                     </div>
+                    <span className="text-[13px] font-medium text-white/60">Live Coaching</span>
                 </div>
             </header>
 
             <div className="flex-1 flex relative">
                 
-                {/* --- Left Context Sidebar --- */}
-                <aside className="w-20 lg:w-64 border-r border-white/5 backdrop-blur-xl bg-black/10 hidden md:flex flex-col p-4">
-                    <div className="space-y-6">
-                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
-                                <History size={12} /> Recent Stats
-                            </h4>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-white/60">Mistakes</span>
-                                    <span className="text-xs font-bold text-red-400">{mistakes.length}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-white/60">Perfects</span>
-                                    <span className="text-xs font-bold text-emerald-400">{dailyCalls - mistakes.length}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
-
-                {/* --- Center Focus: The Avatar --- */}
-                <main className="flex-1 relative flex flex-col items-center justify-center">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.08),transparent)] pointer-events-none" />
-                    
-                    <div className="w-full h-full max-h-[60vh] relative">
-                         <Canvas shadows camera={{ position: [0, 0, 4], fov: 40 }}>
-                            <PerspectiveCamera makeDefault position={[0, 0, 4]} />
-                            <ambientLight intensity={0.5} />
-                            <spotLight position={[10, 10, 10]} intensity={2} angle={0.15} penumbra={1} castShadow />
-                            <Environment preset="city" />
-                            <AvatarModel isSpeaking={isSpeaking} isListening={isListening} status={status} />
-                            <ContactShadows position={[0, -1.8, 0]} opacity={0.4} scale={6} blur={2.5} far={4} />
-                        </Canvas>
-                    </div>
-
-                    {/* --- Interaction Dock --- */}
-                    <div className="w-full max-w-2xl px-8 pb-12 flex flex-col items-center gap-8 relative z-10">
+                {/* Center Panel - The Avatar */}
+                <div className="flex-1 relative flex flex-col">
+                    <div className="flex-1 w-full relative">
+                        {/* 3D Background elements */}
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.08),transparent)]" />
                         
+                        {/* Interactive Particles Background */}
+                        <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+                            {[...Array(20)].map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ 
+                                        x: Math.random() * 100 + "%", 
+                                        y: Math.random() * 100 + "%",
+                                        opacity: Math.random() * 0.5 
+                                    }}
+                                    animate={{ 
+                                        y: [null, "100%", "0%"],
+                                        x: [null, Math.random() * 100 + "%"],
+                                        scale: [1, 1.2, 1]
+                                    }}
+                                    transition={{ 
+                                        duration: 20 + Math.random() * 20, 
+                                        repeat: Infinity, 
+                                        ease: "linear" 
+                                    }}
+                                    className="absolute w-1 h-1 bg-indigo-400 rounded-full blur-[1px]"
+                                />
+                            ))}
+                        </div>
+
+                        <Canvas style={{ background: 'transparent' }} shadows>
+                            <PerspectiveCamera makeDefault position={[0, 0, 4.5]} fov={35} />
+                            <ambientLight intensity={0.4} />
+                            <spotLight position={[10, 15, 10]} intensity={2.5} angle={0.15} penumbra={1} castShadow />
+                            <pointLight position={[-10, -5, -10]} intensity={1.5} color="#6366f1" />
+                            <Environment preset="night" />
+                            
+                            <AvatarModel 
+                                isSpeaking={isSpeaking} 
+                                isListening={isListening} 
+                                status={status} 
+                            />
+                            
+                            <ContactShadows position={[0, -1.8, 0]} opacity={0.3} scale={8} blur={3} far={4} color="#000000" />
+                        </Canvas>
+
+                        {/* Speaking Waveform (under avatar) */}
+                        <div className="absolute top-[60%] left-1/2 -translate-x-1/2 w-64 h-24 flex items-center justify-center gap-1">
+                            {isSpeaking && [...Array(32)].map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    animate={{ 
+                                        height: [10, Math.random() * 60 + 10, 10],
+                                        opacity: [0.3, 1, 0.3]
+                                    }}
+                                    transition={{ 
+                                        duration: 0.3 + Math.random() * 0.4, 
+                                        repeat: Infinity 
+                                    }}
+                                    className="w-1 bg-indigo-400/60 rounded-full"
+                                />
+                            ))}
+                        </div>
+
+                        {/* Speech Feedback Overlay */}
                         <AnimatePresence>
                             {isListening && (
-                                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center">
-                                    <VoiceWaveform active={true} />
-                                    <p className="mt-4 text-white/90 text-lg font-medium tracking-tight italic">"{transcript || "Listening..."}"</p>
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute bottom-40 left-1/2 -translate-x-1/2 bg-indigo-600/20 backdrop-blur-2xl border border-indigo-500/30 px-8 py-4 rounded-3xl text-white text-lg font-medium shadow-2xl min-w-[300px] text-center"
+                                >
+                                    <div className="flex items-center justify-center gap-3 mb-2">
+                                        <div className="flex gap-1 h-4 items-center">
+                                            {[1,2,3,4,5].map(i => (
+                                                <motion.div 
+                                                    key={i}
+                                                    animate={{ height: [4, 16, 4] }}
+                                                    transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.1 }}
+                                                    className="w-1 bg-white rounded-full"
+                                                />
+                                            ))}
+                                        </div>
+                                        <span className="text-sm font-bold uppercase tracking-wider text-indigo-200">Listening...</span>
+                                    </div>
+                                    <p className="opacity-90">{transcript || "Say something..."}</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        {/* --- Main Mic Button --- */}
-                        <div className="relative group">
-                            {limitReached ? (
-                                <div className="flex flex-col items-center gap-3">
-                                    <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/20">
-                                        <XCircle size={32} />
-                                    </div>
-                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Daily Limit Reached</p>
-                                </div>
-                            ) : (
-                                <motion.button 
-                                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                    onClick={handleVoiceInput}
-                                    className={`w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 ${
-                                        isListening ? 'bg-red-500 text-white shadow-red-500/40' : 'bg-indigo-600 text-white shadow-indigo-600/40 group-hover:bg-indigo-500'
+                        {/* Latest Correction Notification */}
+                        <AnimatePresence>
+                            {lastCorrection && (
+                                <motion.div 
+                                    initial={{ x: -100, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className={`absolute top-10 left-10 p-4 rounded-2xl border backdrop-blur-xl shadow-2xl max-w-sm ${
+                                        lastCorrection.status === 'perfect' 
+                                        ? 'bg-emerald-500/10 border-emerald-500/20' 
+                                        : 'bg-amber-500/10 border-amber-500/20'
                                     }`}
                                 >
-                                    <div className={`absolute inset-0 rounded-full border-4 border-indigo-400/20 ${isListening ? 'animate-ping' : ''}`} />
-                                    {isListening ? <MicOff size={32} /> : <Mic size={32} />}
-                                </motion.button>
-                            )}
-                        </div>
-
-                        {!isListening && !limitReached && (
-                            <div className="flex flex-col items-center gap-2">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40">Tap to Start Speaking</p>
-                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[11px] text-white/60">
-                                    <Sparkles size={12} className="text-indigo-400" /> Neural Language Engine Active
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* --- Live Feedback Toast --- */}
-                    <AnimatePresence>
-                        {lastFeedback && (
-                            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}
-                                className={`absolute left-8 bottom-32 p-4 rounded-2xl border backdrop-blur-2xl shadow-2xl max-w-sm ${
-                                    lastFeedback.correct.includes('Perfect') ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'
-                                }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${lastFeedback.correct.includes('Perfect') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                        {lastFeedback.correct.includes('Perfect') ? <Trophy size={16} /> : <AlertCircle size={16} />}
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${lastCorrection.status === 'perfect' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                            {lastCorrection.status === 'perfect' ? <Trophy size={18} /> : <AlertCircle size={18} />}
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-bold text-sm">
+                                                {lastCorrection.status === 'perfect' ? 'Perfect Grammar!' : 'Coaching Feedback'}
+                                            </p>
+                                            {lastCorrection.correction && (
+                                                <p className="text-sm text-white/70 mt-1 italic">"{lastCorrection.correction}"</p>
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className="text-white text-sm font-bold">{lastFeedback.correct.includes('Perfect') ? 'Spotless Grammar' : 'Correction Applied'}</p>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </main>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
-                {/* --- Right Sidebar: Learning Notes --- */}
-                <aside className="w-[420px] border-l border-white/5 backdrop-blur-3xl bg-black/40 flex flex-col">
-                    <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                <BookOpen size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-white font-black tracking-tight text-lg">Mistake Notes</h3>
-                                <p className="text-[10px] uppercase font-bold tracking-widest text-white/30">Grammar & Phrasing</p>
+                        {/* XP Popup / Reward Notification */}
+                        <AnimatePresence>
+                            {showReward && (
+                                <motion.div 
+                                    initial={{ y: 50, opacity: 0, scale: 0.5 }}
+                                    animate={{ y: 0, opacity: 1, scale: 1 }}
+                                    exit={{ y: -50, opacity: 0 }}
+                                    className="absolute bottom-60 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center"
+                                >
+                                    <div className="bg-indigo-600 text-white px-6 py-2 rounded-full font-black text-xl shadow-[0_0_30px_rgba(79,70,229,0.5)] border border-white/20">
+                                        +{showReward.amount} {showReward.type}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Combo Counter */}
+                        <AnimatePresence mode='wait'>
+                            {combo > 1 && (
+                                <motion.div 
+                                    key={combo}
+                                    initial={{ scale: 0, rotate: -20, x: 100 }}
+                                    animate={{ scale: 1, rotate: 0, x: 0 }}
+                                    exit={{ scale: 0, opacity: 0, x: 100 }}
+                                    className="absolute top-1/2 right-20 -translate-y-1/2 flex flex-col items-center z-50"
+                                >
+                                    <div className="text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-t from-orange-600 to-yellow-400 drop-shadow-[0_0_20px_rgba(234,88,12,0.5)]">
+                                        x{combo}
+                                    </div>
+                                    <div className="text-white font-bold uppercase tracking-[0.3em] text-[10px] mt-1">Spoken Combo</div>
+                                    <motion.div 
+                                        animate={{ y: [0, -10, 0], scale: [1, 1.2, 1] }}
+                                        transition={{ repeat: Infinity, duration: 0.5 }}
+                                        className="text-3xl mt-2"
+                                    >🔥</motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Bottom Controls */}
+                    <div className="p-12 flex flex-col items-center justify-center gap-6 bg-gradient-to-t from-[#050508] to-transparent z-10">
+                        <motion.button 
+                            whileHover={{ scale: dailyLimitReached ? 1 : 1.05 }}
+                            whileTap={{ scale: dailyLimitReached ? 1 : 0.95 }}
+                            onClick={dailyLimitReached ? null : handleVoiceInput}
+                            disabled={dailyLimitReached}
+                            className={`w-28 h-28 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(79,70,229,0.3)] transition-all duration-500 relative ${
+                                dailyLimitReached
+                                ? 'bg-gray-800 text-white/20 border border-white/5 opacity-50 cursor-not-allowed'
+                                : isListening 
+                                ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/40' 
+                                : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                            }`}
+                        >
+                            {!dailyLimitReached && <div className="absolute inset-0 rounded-full border-4 border-white/10 animate-ping" style={{ animationDuration: '3s' }} />}
+                            {dailyLimitReached ? <MicOff size={40} /> : isListening ? <MicOff size={40} /> : <Mic size={40} />}
+                        </motion.button>
+                        <div className="flex flex-col items-center">
+                            <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-1 ${dailyLimitReached ? 'text-rose-400' : 'text-white/40'}`}>
+                                {dailyLimitReached ? "Daily free limit reached (15/15)" : isListening ? "Listening to voice..." : "Click to start speaking"}
+                            </p>
+                            <div className="flex items-center gap-2 text-indigo-400/60 font-medium text-[11px] uppercase tracking-wider">
+                                <Zap size={12} className={usageCount > 10 ? 'text-amber-400' : ''} /> {usageCount}/15 Generations Used Today
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {/* Right Panel - Mistake Notes */}
+                <aside className="w-[400px] border-l border-white/5 backdrop-blur-3xl bg-black/40 flex flex-col">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <BookOpen className="text-indigo-400" size={18} />
+                            <h3 className="text-white font-bold tracking-tight">Learning Notes</h3>
+                        </div>
+                        <span className="bg-white/5 text-white/40 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                            Session: {mistakes.length} Notes
+                        </span>
+                    </div>
+
+                    {/* Session Insights Grid */}
+                    <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
+                        <div className="p-4 bg-black/20 text-center">
+                            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Accuracy</p>
+                            <p className="text-xl font-black text-indigo-400">
+                                {sessionMessages.length > 0 
+                                    ? Math.round(((sessionMessages.length/2 - mistakes.length) / (sessionMessages.length/2)) * 100) 
+                                    : 0}%
+                            </p>
+                        </div>
+                        <div className="p-4 bg-black/20 text-center">
+                            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Practiced</p>
+                            <p className="text-xl font-black text-indigo-400">{sessionMessages.length / 2}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                         <AnimatePresence mode='popLayout'>
                             {mistakes.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center p-12 opacity-20 text-center">
-                                    <Brain size={64} className="mb-6" />
-                                    <p className="text-sm font-bold uppercase tracking-widest">No mistakes yet. Let's start the conversation!</p>
-                                </div>
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="h-full flex flex-col items-center justify-center text-center p-8 opacity-30"
+                                >
+                                    <History size={48} className="mb-4" />
+                                    <p className="text-sm font-medium text-white font-mono">Session history will appear here. Start speaking to trigger corrections.</p>
+                                </motion.div>
                             ) : (
                                 mistakes.map((m, idx) => (
-                                    <motion.div key={m.id} initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-                                        className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-6 hover:bg-white/[0.06] transition-all group relative overflow-hidden"
+                                    <motion.div 
+                                        key={m.id}
+                                        initial={{ x: 50, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-5 hover:bg-white/[0.05] transition-colors group"
                                     >
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-3xl pointer-events-none" />
-                                        <div className="flex items-center justify-between mb-4">
-                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Record #{mistakes.length - idx}</span>
-                                            <div className="text-[10px] font-black text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded-full">{m.score}%</div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Mistake #{mistakes.length - idx}</span>
+                                            <AlertCircle size={14} className="text-amber-500 opacity-50" />
                                         </div>
                                         
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
                                             <div>
-                                                <p className="text-[10px] uppercase font-bold text-red-500/40 tracking-wider mb-2">Wrong Phrasing</p>
-                                                <p className="text-sm text-white/80 line-through decoration-red-500/50">{m.wrong}</p>
+                                                <p className="text-[10px] uppercase font-bold text-red-400/60 tracking-wider mb-1">You Said</p>
+                                                <p className="text-[13px] text-white/90 font-medium line-through decoration-red-500/40">"{m.wrong}"</p>
                                             </div>
                                             
-                                            <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/10">
-                                                <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider mb-2">Natural Correction</p>
-                                                <p className="text-sm text-white font-bold leading-relaxed">{m.correct}</p>
+                                            <div className="bg-indigo-500/10 rounded-2xl p-3 border border-indigo-500/10">
+                                                <p className="text-[10px] uppercase font-bold text-indigo-400/80 tracking-wider mb-1">Correction</p>
+                                                <p className="text-[14px] text-white font-bold leading-snug">"{m.correct}"</p>
                                             </div>
 
                                             {m.explanation && (
-                                                <div className="flex gap-2">
-                                                    <div className="w-1 h-auto bg-white/10 rounded-full" />
-                                                    <p className="text-[12px] text-white/50 leading-relaxed italic">
-                                                        <span className="text-indigo-400 font-bold not-italic">Coach's Tip:</span> {m.explanation}
+                                                <div className="pt-2">
+                                                    <p className="text-[13px] text-white/60 italic leading-relaxed">
+                                                        <span className="text-indigo-400 not-italic font-bold">💡 Tip:</span> {m.explanation}
                                                     </p>
                                                 </div>
                                             )}
@@ -377,24 +664,131 @@ export default function EnglishPracticePage() {
                         </AnimatePresence>
                     </div>
 
-                    <div className="p-8 border-t border-white/5 bg-gradient-to-br from-indigo-600/10 to-transparent">
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm font-bold text-white">Session Session Summary</span>
-                            <span className="text-xs text-white/40">Today</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                                <p className="text-[10px] uppercase font-bold text-white/30 mb-1">Fluency</p>
-                                <p className="text-lg font-black text-white">82%</p>
+                    <div className="p-6 border-t border-white/5 bg-indigo-600/10">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <Trophy size={20} />
                             </div>
-                            <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                                <p className="text-[10px] uppercase font-bold text-white/30 mb-1">Call usage</p>
-                                <p className="text-lg font-black text-white">{dailyCalls}/15</p>
+                            <div>
+                                <h4 className="text-sm font-bold text-white uppercase tracking-tighter">Daily Target (5 Spoken)</h4>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.min(100, (progress / 5) * 100)}%` }}
+                                            className={`h-full bg-gradient-to-r ${progress >= 5 ? 'from-emerald-500 to-teal-500' : 'from-indigo-500 to-purple-500'} rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]`} 
+                                        />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-white/60">{progress}/5</span>
+                                </div>
                             </div>
                         </div>
+                        {progress >= 5 ? (
+                            <div className="text-[11px] text-emerald-400 font-bold flex items-center gap-2">
+                                <Zap size={12} /> Daily Goal Smashed! +20 XP Reward
+                            </div>
+                        ) : (
+                            <p className="text-[11px] text-white/50 leading-relaxed">
+                                Practice {5 - progress} more sentences to hit your daily goal and earn bonus XP.
+                            </p>
+                        )}
                     </div>
                 </aside>
             </div>
+
+            {/* Badges Modal */}
+            <AnimatePresence>
+                {showBadges && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowBadges(false)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-2xl bg-[#0a0a0f] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                                        Achievements <Trophy className="text-amber-500" />
+                                    </h2>
+                                    <p className="text-white/40 text-sm mt-1">Earn badges to showcase your progress</p>
+                                </div>
+                                <button onClick={() => setShowBadges(false)} className="p-2 hover:bg-white/5 rounded-xl text-white/40 transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {ALL_BADGES.map(badge => {
+                                        const isEarned = earnedBadges.includes(badge.id);
+                                        return (
+                                            <div 
+                                                key={badge.id}
+                                                className={`p-5 rounded-2xl border transition-all duration-500 ${
+                                                    isEarned 
+                                                    ? 'bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)]' 
+                                                    : 'bg-white/[0.02] border-white/5 opacity-50'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                                                        isEarned ? 'bg-indigo-500/20' : 'bg-white/5 grayscale'
+                                                    }`}>
+                                                        {badge.icon}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className={`font-bold ${isEarned ? 'text-white' : 'text-white/40'}`}>{badge.name}</h3>
+                                                        <p className="text-xs text-white/30 mt-1">{badge.desc}</p>
+                                                        
+                                                        {isEarned ? (
+                                                            <div className="flex items-center gap-2 mt-4">
+                                                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[10px] font-bold text-white transition-colors">
+                                                                    <Download size={12} /> Download
+                                                                </button>
+                                                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0077b5] hover:bg-[#0077b5]/80 rounded-lg text-[10px] font-bold text-white transition-colors">
+                                                                    <Linkedin size={12} /> Share
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="mt-4 flex items-center gap-1.5 text-[10px] font-bold text-white/20 uppercase tracking-wider">
+                                                                <Lock size={12} /> Locked
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-8 p-6 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                                    <h4 className="text-amber-500 font-bold text-sm mb-2 flex items-center gap-2">
+                                        <Star size={16} className="fill-amber-500" /> Future Rewards
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-white/60">Milestone Reach 2000 XP</span>
+                                            <span className="text-amber-500/60 font-mono">LOCKED</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-white/60">30 Day Multi-Streak</span>
+                                            <span className="text-amber-500/60 font-mono">LOCKED</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
