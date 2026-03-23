@@ -34,6 +34,8 @@ export default function EnglishPracticePage() {
     const [showReward, setShowReward] = useState(null); // { type, amount }
     const [showBadges, setShowBadges] = useState(false);
     const [earnedBadges, setEarnedBadges] = useState([]);
+    const [activeTab, setActiveTab] = useState('notes'); // 'notes' or 'history'
+    const [streakWarning, setStreakWarning] = useState(null); // Notification banner
     
     // Badge Definitions
     const ALL_BADGES = [
@@ -69,15 +71,29 @@ export default function EnglishPracticePage() {
             return;
         }
 
-        // Streak check
+        // Streak check (Timestamp based)
+        const now = Date.now();
+        const lastActiveTime = stored.lastActiveTime || 0;
         let currentStreak = stored.streak || 0;
-        const lastActive = stored.lastActive;
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yestStr = yesterday.toDateString();
-
-        if (lastActive !== today && lastActive !== yestStr && lastActive !== "") {
-            currentStreak = 0; // Streak reset
+        
+        // Reset if missed more than 48 hours
+        if (lastActiveTime > 0 && (now - lastActiveTime) > (48 * 60 * 60 * 1000)) {
+            currentStreak = 0;
+            stored.streak = 0;
+            localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
+        } else if (lastActiveTime > 0 && (now - lastActiveTime) > (36 * 60 * 60 * 1000)) {
+            // Warn if between 36 and 48 hours (last 12 hours of the streak)
+            setStreakWarning(`🔥 Your ${currentStreak}-day streak is about to end! Practice now to save it!`);
+            
+            // Try browser push notification if permitted
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Kynara Coach", {
+                    body: `Your ${currentStreak}-day streak is AT RISK! ⚠️ Practice now to keep the fire alive.`,
+                    icon: "/favicon.ico"
+                });
+            } else if ("Notification" in window) {
+                Notification.requestPermission();
+            }
         }
 
         // Reset sentences if new day
@@ -123,15 +139,18 @@ export default function EnglishPracticePage() {
     const awardXP = (amount, type = "XP") => {
         const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v2') || '{}');
         const newXp = (stored.xp || 0) + amount;
-        const today = new Date().toDateString();
+        const now = Date.now();
+        const lastActiveTime = stored.lastActiveTime || 0;
         
-        if (stored.lastActive !== today) {
+        // Only increment if at least 20 hours have passed (buffer for "daily" practice)
+        if (now - lastActiveTime >= 20 * 60 * 60 * 1000) {
             stored.streak = (stored.streak || 0) + 1;
+            stored.lastActiveTime = now;
             setStreak(stored.streak);
         }
 
         stored.xp = newXp;
-        stored.lastActive = today;
+        stored.lastActive = today; 
         localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
         
         setXp(newXp);
@@ -180,6 +199,53 @@ export default function EnglishPracticePage() {
         localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
         setUsageCount(stored.count);
         if (stored.count >= 15) setDailyLimitReached(true);
+    };
+
+    const downloadBadge = (badge) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 600;
+        const ctx = canvas.getContext('2d');
+
+        // Draw Premium Background
+        const grad = ctx.createRadialGradient(300, 300, 0, 300, 300, 400);
+        grad.addColorStop(0, '#1e1b4b');
+        grad.addColorStop(1, '#050508');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 600, 600);
+
+        // Draw Glowing Ring
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(300, 300, 250, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Icon placeholder (simple star/award for downloaded image)
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 80px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏆', 300, 280);
+
+        // Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillText(badge.name, 300, 360);
+        
+        ctx.fillStyle = '#ffffff60';
+        ctx.font = '18px sans-serif';
+        ctx.fillText('Earned on Kynara AI English Practice', 300, 410);
+
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `Kynara_${badge.id}_Badge.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 'image/png');
     };
 
     // Initialize English Practice Session
@@ -279,17 +345,19 @@ export default function EnglishPracticePage() {
             const corrMatch = reply.match(/CORRECTION:\s*(.*?)(?=\n|EXPLANATION:|$)/i);
             const explMatch = reply.match(/EXPLANATION:\s*(.*?)(?=\n|$)/i);
             
-            if (corrMatch && !corrMatch[1].includes('Perfect')) {
+            const isPerfect = corrMatch && corrMatch[1].toLowerCase().includes('perfect');
+
+            if (corrMatch && !isPerfect) {
                 const newMistake = {
                     id: Date.now(),
                     wrong: text,
-                    correct: corrMatch[1].trim(),
+                    correction: corrMatch[1].trim(), // Fixed property name
                     explanation: explMatch ? explMatch[1].trim() : ""
                 };
                 setMistakes(prev => [newMistake, ...prev]);
                 setLastCorrection(newMistake);
                 handleSentenceGamify(false);
-            } else {
+            } else if (isPerfect) {
                 setLastCorrection({ status: 'perfect' });
                 handleSentenceGamify(true);
             }
@@ -393,6 +461,26 @@ export default function EnglishPracticePage() {
                     <span className="text-[13px] font-medium text-white/60">Live Coaching</span>
                 </div>
             </header>
+
+            {/* Streak Warning Banner */}
+            <AnimatePresence>
+                {streakWarning && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="bg-orange-500/20 border-b border-orange-500/30 backdrop-blur-md px-6 py-2 flex items-center justify-between text-orange-200 text-xs font-bold"
+                    >
+                        <div className="flex items-center gap-2">
+                             <Zap size={14} className="animate-pulse fill-orange-500" />
+                             {streakWarning}
+                        </div>
+                        <button onClick={() => setStreakWarning(null)} className="p-1 hover:bg-white/5 rounded">
+                            <X size={14} />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className="flex-1 flex relative">
                 
@@ -585,78 +673,109 @@ export default function EnglishPracticePage() {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Right Panel - Mistake Notes */}
-                <aside className="w-[400px] border-l border-white/5 backdrop-blur-3xl bg-black/40 flex flex-col">
-                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <BookOpen className="text-indigo-400" size={18} />
-                            <h3 className="text-white font-bold tracking-tight">Learning Notes</h3>
+                            {/* Right Panel - Feedback & History */}
+                <aside className="w-96 border-l border-white/5 bg-black/40 backdrop-blur-3xl flex flex-col z-10 transition-all duration-500">
+                    <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex bg-white/5 p-1 rounded-xl">
+                            <button 
+                                onClick={() => setActiveTab('notes')}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === 'notes' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+                            >
+                                Learning Notes
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('history')}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+                            >
+                                Dialogue History
+                            </button>
                         </div>
                         <span className="bg-white/5 text-white/40 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
-                            Session: {mistakes.length} Notes
+                            {activeTab === 'notes' ? mistakes.length : Math.floor(sessionMessages.length / 2)} Total
                         </span>
                     </div>
 
-                    {/* Session Insights Grid */}
-                    <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
-                        <div className="p-4 bg-black/20 text-center">
-                            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Accuracy</p>
-                            <p className="text-xl font-black text-indigo-400">
-                                {sessionMessages.length > 0 
-                                    ? Math.round(((sessionMessages.length/2 - mistakes.length) / (sessionMessages.length/2)) * 100) 
-                                    : 0}%
-                            </p>
+                    {/* Session Insights Grid (only in notes tab) */}
+                    {activeTab === 'notes' && (
+                        <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
+                            <div className="p-4 bg-black/20 text-center">
+                                <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Accuracy</p>
+                                <p className="text-xl font-black text-indigo-400">
+                                    {sessionMessages.length > 2 
+                                        ? Math.round(((sessionMessages.length/2 - mistakes.length) / (sessionMessages.length/2)) * 100) 
+                                        : 0}%
+                                </p>
+                            </div>
+                            <div className="p-4 bg-black/20 text-center">
+                                <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Practiced</p>
+                                <p className="text-xl font-black text-indigo-400">{Math.floor(sessionMessages.length / 2)}</p>
+                            </div>
                         </div>
-                        <div className="p-4 bg-black/20 text-center">
-                            <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Practiced</p>
-                            <p className="text-xl font-black text-indigo-400">{sessionMessages.length / 2}</p>
-                        </div>
-                    </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                         <AnimatePresence mode='popLayout'>
-                            {mistakes.length === 0 ? (
-                                <motion.div 
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="h-full flex flex-col items-center justify-center text-center p-8 opacity-30"
-                                >
-                                    <History size={48} className="mb-4" />
-                                    <p className="text-sm font-medium text-white font-mono">Session history will appear here. Start speaking to trigger corrections.</p>
-                                </motion.div>
-                            ) : (
-                                mistakes.map((m, idx) => (
+                            {activeTab === 'notes' ? (
+                                mistakes.length === 0 ? (
                                     <motion.div 
-                                        key={m.id}
-                                        initial={{ x: 50, opacity: 0 }}
-                                        animate={{ x: 0, opacity: 1 }}
-                                        className="bg-white/[0.03] border border-white/[0.05] rounded-3xl p-5 hover:bg-white/[0.05] transition-colors group"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="h-full flex flex-col items-center justify-center text-center p-8"
                                     >
-                                        <div className="flex items-center justify-between mb-3">
-                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Mistake #{mistakes.length - idx}</span>
-                                            <AlertCircle size={14} className="text-amber-500 opacity-50" />
+                                        <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-white/20 mb-4">
+                                            <BookOpen size={32} />
                                         </div>
-                                        
-                                        <div className="space-y-3">
-                                            <div>
-                                                <p className="text-[10px] uppercase font-bold text-red-400/60 tracking-wider mb-1">You Said</p>
-                                                <p className="text-[13px] text-white/90 font-medium line-through decoration-red-500/40">"{m.wrong}"</p>
-                                            </div>
-                                            
-                                            <div className="bg-indigo-500/10 rounded-2xl p-3 border border-indigo-500/10">
-                                                <p className="text-[10px] uppercase font-bold text-indigo-400/80 tracking-wider mb-1">Correction</p>
-                                                <p className="text-[14px] text-white font-bold leading-snug">"{m.correct}"</p>
-                                            </div>
-
-                                            {m.explanation && (
-                                                <div className="pt-2">
-                                                    <p className="text-[13px] text-white/60 italic leading-relaxed">
-                                                        <span className="text-indigo-400 not-italic font-bold">💡 Tip:</span> {m.explanation}
-                                                    </p>
+                                        <p className="text-white/40 text-sm font-medium">Your learning notes will appear here as you practice.</p>
+                                    </motion.div>
+                                ) : (
+                                    mistakes.map(mistake => (
+                                        <motion.div 
+                                            key={mistake.id}
+                                            initial={{ x: 20, opacity: 0 }}
+                                            animate={{ x: 0, opacity: 1 }}
+                                            className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 hover:border-indigo-500/30 transition-all group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+                                                    <AlertCircle size={16} />
                                                 </div>
-                                            )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs text-white/40 font-bold uppercase tracking-wider mb-2">Correction Found</p>
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <p className="text-[10px] text-rose-400 font-bold uppercase mb-1">You said:</p>
+                                                            <p className="text-sm text-white/70 line-through decoration-rose-500/50">"{mistake.wrong}"</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] text-indigo-400 font-bold uppercase mb-1">Kynara says:</p>
+                                                            <p className="text-sm text-white font-medium italic">"{mistake.correction}"</p>
+                                                        </div>
+                                                        {mistake.explanation && (
+                                                            <div className="pt-2 border-t border-white/5">
+                                                                <p className="text-[10px] text-amber-400/60 font-bold uppercase mb-1">Why?</p>
+                                                                <p className="text-xs text-white/40 italic">{mistake.explanation}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )
+                            ) : (
+                                sessionMessages.map((msg, idx) => (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-4`}
+                                    >
+                                        <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed ${
+                                            msg.role === 'user' 
+                                            ? 'bg-indigo-600/20 text-indigo-200 border border-indigo-500/20 rounded-tr-none' 
+                                            : 'bg-white/5 text-white/70 border border-white/5 rounded-tl-none'
+                                        }`}>
+                                            {msg.content}
                                         </div>
                                     </motion.div>
                                 ))
@@ -750,10 +869,16 @@ export default function EnglishPracticePage() {
                                                         
                                                         {isEarned ? (
                                                             <div className="flex items-center gap-2 mt-4">
-                                                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[10px] font-bold text-white transition-colors">
+                                                                <button 
+                                                                    onClick={() => downloadBadge(badge)}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[10px] font-bold text-white transition-colors"
+                                                                >
                                                                     <Download size={12} /> Download
                                                                 </button>
-                                                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0077b5] hover:bg-[#0077b5]/80 rounded-lg text-[10px] font-bold text-white transition-colors">
+                                                                <button 
+                                                                    onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank')}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0077b5] hover:bg-[#0077b5]/80 rounded-lg text-[10px] font-bold text-white transition-colors"
+                                                                >
                                                                     <Linkedin size={12} /> Share
                                                                 </button>
                                                             </div>
@@ -790,5 +915,6 @@ export default function EnglishPracticePage() {
                 )}
             </AnimatePresence>
         </div>
+    </div>
     );
 }
