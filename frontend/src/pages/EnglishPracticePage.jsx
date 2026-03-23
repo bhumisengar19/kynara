@@ -313,6 +313,19 @@ export default function EnglishPracticePage() {
     };
 
     useEffect(() => {
+        let interval;
+        if (isTimerActive && timer > 0) {
+            interval = setInterval(() => {
+                setTimer(prev => prev - 1);
+            }, 1000);
+        } else if (timer === 0 && isTimerActive) {
+            setIsTimerActive(false);
+            submitToCoach("(Timed out: user didn't respond in time)");
+        }
+        return () => clearInterval(interval);
+    }, [isTimerActive, timer]);
+
+    useEffect(() => {
         const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v3') || '{}');
         setXp(stored.xp || 0);
         calculateLevel(stored.xp || 0);
@@ -390,27 +403,39 @@ export default function EnglishPracticePage() {
         if (!currentChatId || dailyLimitReached) return;
         setStatus('thinking');
         incrementUsage();
+        setIsTimerActive(false);
         
         try {
-            // Handle Repeat & Improve comparison
-            if (isRepeating) {
+            // Behavioral Heuristics
+            const fillers = text.match(/\b(um|uh|err|like|you know|so|well)\b/gi) || [];
+            const words = text.split(/\s+/).length;
+            const confidence = Math.min(100, Math.round((words / 15) * 100)); // Rough confidence score based on length
+
+            setAnalytics(prev => ({
+                ...prev,
+                fillersCount: prev.fillersCount + fillers.length,
+                confidence: confidence
+            }));
+
+            // Handle Review & Improve comparison (same as shadowing basically)
+            if (isRepeating || trainingMode === 'shadowing') {
                 const target = targetSentence.toLowerCase().replace(/[.,!?;:]/g, "");
                 const input = text.toLowerCase().replace(/[.,!?;:]/g, "");
-                const similarity = input === target ? 100 : 0; // Simple for now
+                const similarity = input === target ? 100 : 0; 
                 
                 if (similarity === 100) {
-                    awardXP(15, "Perfect Sync! 🔥");
+                    awardXP(20, "Vocal Master! 🔥");
                     setSessionMessages(prev => [...prev, 
-                        { role: 'user', content: `(Repeating) ${text}` },
-                        { role: 'assistant', content: "Perfectly repeated! You have mastered that sentence. Great job!" }
+                        { role: 'user', content: `(Repeat) ${text}` },
+                        { role: 'assistant', content: "Perfect mimicry! Your pronunciation and rhythm are spot on." }
                     ]);
-                    speakResponse("Perfectly repeated! You have mastered that sentence.");
+                    speakResponse("Perfect mimicry! Your pronunciation and rhythm are spot on.");
                 } else {
                     setSessionMessages(prev => [...prev, 
-                        { role: 'user', content: `(Repeating) ${text}` },
-                        { role: 'assistant', content: `Almost! You said: "${text}". Try one more time to match our target: "${targetSentence}"` }
+                        { role: 'user', content: `(Repeat) ${text}` },
+                        { role: 'assistant', content: `Close, but watch the phrasing. You said: "${text}". Target was: "${targetSentence}"` }
                     ]);
-                    speakResponse("Almost! Give it one more try to match the target.");
+                    speakResponse("Close, but try to match the phrasing exactly.");
                 }
                 setIsRepeating(false);
                 setTargetSentence("");
@@ -424,7 +449,8 @@ export default function EnglishPracticePage() {
                 englishMode: true,
                 scenario,
                 personality,
-                difficulty
+                difficulty,
+                trainingMode // Send the mode to customize AI response
             });
 
             const { reply } = res.data;
@@ -479,6 +505,13 @@ export default function EnglishPracticePage() {
             ]);
             
             speakResponse(cleanReply);
+            
+            // Think Fast Timer logic
+            if (trainingMode === 'thinkfast') {
+                setTimer(5);
+                setIsTimerActive(true);
+            }
+
             setStatus('online');
             setTranscript("");
         } catch (err) {
@@ -970,14 +1003,31 @@ export default function EnglishPracticePage() {
                                     className="space-y-6"
                                 >
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Fluency</p>
                                             <p className="text-2xl font-black text-indigo-400">{analytics.fluency}%</p>
                                         </div>
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Accuracy</p>
-                                            <p className="text-2xl font-black text-emerald-400">{analytics.accuracy}%</p>
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Confidence</p>
+                                            <p className="text-2xl font-black text-emerald-400">{analytics.confidence}%</p>
                                         </div>
+                                    </div>
+
+                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                                                <RefreshCcw size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-white/30 font-bold uppercase">Filler Words</p>
+                                                <p className="text-sm font-black text-white">{analytics.fillersCount} Detected</p>
+                                            </div>
+                                        </div>
+                                        {analytics.fillersCount > 5 && (
+                                            <span className="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-1 rounded-md font-bold uppercase">Needs Focus</span>
+                                        )}
                                     </div>
 
                                     <div className="space-y-4">
