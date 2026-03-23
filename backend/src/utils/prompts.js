@@ -1,3 +1,48 @@
+const PRO_ROLEPLAY_BANK = {
+    interview: {
+        behavior: "Professional tone, follow-up questions, slight pressure.",
+        beginner: ["Tell me about yourself.", "Why do you want this job?", "What are your strengths?"],
+        intermediate: ["Describe a challenge you faced and how you handled it.", "Why should we hire you?", "Where do you see yourself in 5 years?"],
+        advanced: ["Explain a failure and what you learned from it.", "How do you handle pressure and deadlines?", "Tell me about a time you showed leadership."]
+    },
+    shopping: {
+        behavior: "Casual + interactive, real-life simulation.",
+        beginner: ["What do you want to buy?", "Do you prefer online or offline shopping?", "How often do you go shopping?"],
+        intermediate: ["Can you ask for a discount?", "How would you return a product?", "Explain what you're looking for in a store."],
+        advanced: ["Handle a complaint about a defective product.", "Negotiate price with a shopkeeper.", "Explain why you prefer a certain brand."]
+    },
+    travel: {
+        behavior: "Slightly formal, real-world scenarios.",
+        beginner: ["Where are you traveling to?", "What is your purpose of travel?", "Do you have your passport?"],
+        intermediate: ["How would you ask for directions at the airport?", "Explain your travel plan.", "Ask about flight delays."],
+        advanced: ["Handle lost luggage situation.", "Talk to immigration officer confidently.", "Explain a travel emergency."]
+    },
+    casual: {
+        behavior: "Friendly, Encouraging, Relaxed tone.",
+        beginner: ["How was your day?", "What are your hobbies?", "What do you like to do in your free time?"],
+        intermediate: ["Talk about your favorite movie.", "Describe your best friend.", "What do you usually do on weekends?"],
+        advanced: ["Discuss your opinions on social media.", "Talk about your goals in life.", "Describe a memorable experience."]
+    },
+    presentation: {
+        behavior: "Listener mode, gives feedback after speaking.",
+        beginner: ["Introduce yourself to an audience.", "Talk about your college.", "Explain your favorite subject."],
+        intermediate: ["Explain a topic for 1 minute.", "Describe a process step-by-step.", "Present a small idea."],
+        advanced: ["Pitch a startup idea.", "Explain a technical concept clearly.", "Deliver a persuasive speech."]
+    },
+    doctor: {
+        behavior: "Professional, caring, investigative.",
+        beginner: ["What problem are you facing?", "How long have you had this issue?", "Do you have any pain?"],
+        intermediate: ["Explain your symptoms clearly.", "Ask for medication instructions.", "Describe your health routine."],
+        advanced: ["Explain a complex health issue.", "Discuss treatment options.", "Ask detailed medical questions."]
+    },
+    restaurant: {
+        behavior: "Polite, helpful waiter tone.",
+        beginner: ["What would you like to order?", "Do you want something to drink?"],
+        intermediate: ["Ask about menu items.", "Request customization.", "Complain about food politely."],
+        advanced: ["Handle wrong order situation.", "Give feedback to waiter.", "Discuss dietary preferences."]
+    }
+};
+
 export const PROMPTS = {
     MEMORY_CHAT: (history, currentMessage, instructions = "") => `Here is the conversation so far:
 ${history}
@@ -39,22 +84,35 @@ ${text}`,
  
  ${history}`,
 
-    ENGLISH_COACH: (history, message) => `
-You are an expert English Language Coach and conversational partner. 
-The user is practicing their spoken English with you. 
+    ENGLISH_COACH: (history, message, scenario = 'casual', personality = 'friendly', difficulty = 'intermediate') => {
+        const scenarioData = PRO_ROLEPLAY_BANK[scenario] || PRO_ROLEPLAY_BANK['casual'];
+        const startingQuestions = scenarioData[difficulty] || scenarioData['intermediate'];
+        const behavior = scenarioData.behavior;
 
-STRICT INSTRUCTIONS:
-1. First, analyze the user's message for ANY errors (grammar, spelling, word choice, or unnatural phrasing).
-2. Start your response EXACTLY in this format:
-   CORRECTION: [The corrected version of their sentence or "Perfect!"]
-   EXPLANATION: [A short, helpful tip on the correction or "Your sentence was great!"]
+        return `
+You are an expert English Language Coach with a **${personality}** personality.
+The user is in a **${scenario}** roleplay scenario at **${difficulty}** level.
 
-3. CRITICAL: Continue the conversation normally by responding directly to the CONTENT of what the user said. Be a friendly, engaged partner. Answer their questions, comment on their thoughts, and keep the discussion moving naturally. Do NOT just give a correction; you must have a real conversation with them.
+ROLEPLAY CONTEXT & BEHAVIOR:
+- Your target behavior: ${behavior}
+- If this is the START of the conversation, use one of these questions: ${startingQuestions.join(" | ")}
+- DYNAMIC FOLLOW-UP SYSTEM: Don't just ask static questions. Respond naturally to the user's input, answer their questions, and then ask a relevant follow-up.
+
+STRICT FORMATTING INSTRUCTIONS:
+1. First, analyze the user's message for errors.
+2. Start your response in this EXACT format:
+   CORRECTION: [The corrected version or "Perfect!"]
+   EXPLANATION: [A short, helpful tip on the correction]
+   CATEGORY: [Grammar, Vocabulary, or Pronunciation]
+   SCORES: [Grammar: X/100, Vocabulary: Y/100, Fluency: Z/100]
+
+3. Continue the conversation naturally as your persona (${personality}) in the context (${scenario}).
 
 User's message: "${message}"
 
-Recent conversation history:
+Recent history:
 ${history}
 
-Respond now:`
+Respond now:`;
+    }
 };

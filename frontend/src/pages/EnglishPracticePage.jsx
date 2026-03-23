@@ -2,12 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { Environment, ContactShadows, PerspectiveCamera } from '@react-three/drei';
-import { Mic, MicOff, Volume2, Trophy, AlertCircle, BookOpen, ArrowLeft, History, Zap, Award, Star, Download, Linkedin, Share2, X, ChevronRight, CheckCircle2, Lock } from 'lucide-react';
+import { Mic, MicOff, Volume2, Trophy, AlertCircle, BookOpen, ArrowLeft, History, Zap, Award, Star, Download, Linkedin, Share2, X, ChevronRight, CheckCircle2, Lock, Settings, Briefcase, ShoppingBag, Plane, Coffee, Users, Target, BarChart3, Brain, Sparkles, RefreshCcw, Stethoscope, Utensils, Timer, Shield, Swords, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarModel } from '../components/FloatingAvatar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
+
+// Badge Definitions
+const ALL_BADGES = [
+    { id: 'first_step', name: 'First Step', desc: 'Complete 1 practice session', icon: <Award className="text-blue-400" />, requirement: (s) => s.count >= 1 },
+    { id: 'on_fire', name: 'On Fire', desc: 'Maintain a 3-day streak', icon: <Zap className="text-orange-500" />, requirement: (s) => s.streak >= 3 },
+    { id: 'level_master', name: 'Rising Star', desc: 'Reach Level 2 (Intermediate)', icon: <Star className="text-yellow-400" />, requirement: (s) => s.xp >= 100 },
+    { id: 'perfect_ten', name: 'Perfect Ten', desc: 'Get a x10 combo', icon: <CheckCircle2 className="text-emerald-400" />, requirement: (s) => (s.maxCombo || 0) >= 10 },
+    { id: 'legend', name: 'AI Legend', desc: 'Reach 1000 XP', icon: <Trophy className="text-purple-400" />, requirement: (s) => s.xp >= 1000 },
+];
 
 export default function EnglishPracticePage() {
     const { user } = useAuth();
@@ -37,13 +46,43 @@ export default function EnglishPracticePage() {
     const [activeTab, setActiveTab] = useState('notes'); // 'notes' or 'history'
     const [streakWarning, setStreakWarning] = useState(null); // Notification banner
     
-    // Badge Definitions
-    const ALL_BADGES = [
-        { id: 'first_step', name: 'First Step', desc: 'Complete 1 practice session', icon: <Award className="text-blue-400" />, requirement: (s) => s.count >= 1 },
-        { id: 'on_fire', name: 'On Fire', desc: 'Maintain a 3-day streak', icon: <Zap className="text-orange-500" />, requirement: (s) => s.streak >= 3 },
-        { id: 'level_master', name: 'Rising Star', desc: 'Reach Level 2 (Intermediate)', icon: <Star className="text-yellow-400" />, requirement: (s) => s.xp >= 100 },
-        { id: 'perfect_ten', name: 'Perfect Ten', desc: 'Get a x10 combo', icon: <CheckCircle2 className="text-emerald-400" />, requirement: (s) => (s.maxCombo || 0) >= 10 },
-        { id: 'legend', name: 'AI Legend', desc: 'Reach 1000 XP', icon: <Trophy className="text-purple-400" />, requirement: (s) => s.xp >= 1000 },
+    // NEW POWER COACH STATES
+    const [configMode, setConfigMode] = useState(true); // Initial configuration screen
+    const [personality, setPersonality] = useState('friendly'); // friendly, strict, mentor
+    const [scenario, setScenario] = useState('casual'); // interview, shopping, travel, casual, presentation
+    const [difficulty, setDifficulty] = useState('intermediate');
+    const [analytics, setAnalytics] = useState({
+        accuracy: 0,
+        fluency: 0,
+        grammarScore: 0,
+        vocabScore: 0,
+        pronunciationScore: 0,
+        totalMistakes: 0,
+        topWeakness: "None yet",
+        fillersCount: 0,
+        confidence: 0
+    });
+    const [trainingMode, setTrainingMode] = useState('conversation'); // conversation, shadowing, thinkfast, mocktest
+    const [timer, setTimer] = useState(null);
+    const [isTimerActive, setIsTimerActive] = useState(false);
+    const [weakAreas, setWeakAreas] = useState([]);
+    const [isRepeating, setIsRepeating] = useState(false); // For Repeat & Improve mode
+    const [targetSentence, setTargetSentence] = useState("");
+    
+    const PERSONALITIES = [
+        { id: 'friendly', name: 'Friendly Coach', icon: '😊', desc: 'Encouraging and supportive feedback', color: 'text-emerald-400' },
+        { id: 'strict', name: 'Strict Teacher', icon: '👨‍🏫', desc: 'Focus on precision and hard rules', color: 'text-rose-400' },
+        { id: 'mentor', name: 'Professional Mentor', icon: '💼', desc: 'Business-focused, career-ready advice', color: 'text-indigo-400' }
+    ];
+
+    const SCENARIOS = [
+        { id: 'casual', name: 'Casual Talk', icon: <Coffee size={20} />, prompt: "Let's have a relaxed chat about your day or interests." },
+        { id: 'interview', name: 'Job Interview', icon: <Briefcase size={20} />, prompt: "I'll be your interviewer. We are meeting for a position you applied for." },
+        { id: 'shopping', name: 'Shopping', icon: <ShoppingBag size={20} />, prompt: "You are at a premium store and need help with your purchase." },
+        { id: 'travel', name: 'Travel & Booking', icon: <Plane size={20} />, prompt: "You are at the airport or checking into a hotel." },
+        { id: 'presentation', name: 'Oral Presentation', icon: <Users size={20} />, prompt: "You are presenting a new idea to a board of directors." },
+        { id: 'doctor', name: 'Doctor / Health', icon: <Stethoscope size={20} />, prompt: "I am your doctor. Please explain what happened and how you are feeling." },
+        { id: 'restaurant', name: 'Restaurant', icon: <Utensils size={20} />, prompt: "I am your waiter. What can I get for you today?" }
     ];
     
     const recognitionRef = useRef(null);
@@ -249,20 +288,40 @@ export default function EnglishPracticePage() {
     };
 
     // Initialize English Practice Session
+    const startSession = async () => {
+        try {
+            setStatus('thinking');
+            setConfigMode(false);
+            const activeScenario = SCENARIOS.find(s => s.id === scenario);
+            const activePersonality = PERSONALITIES.find(p => p.id === personality);
+            
+            const initialGreeting = `Hello! I'm your ${activePersonality.name}. ${activeScenario.prompt} I'm ready when you are.`;
+            
+            const res = await api.post("/chat/new", { 
+                greeting: initialGreeting,
+                scenario: scenario,
+                personality: personality
+            });
+            setCurrentChatId(res.data._id);
+            setSessionMessages(res.data.messages);
+            speakResponse(initialGreeting);
+            setStatus('online');
+        } catch (err) {
+            console.error("Failed to start session:", err);
+            setStatus('online');
+        }
+    };
+
     useEffect(() => {
-        const initSession = async () => {
-            try {
-                const res = await api.post("/chat/new", { 
-                    greeting: "Hello! I'm your English Coach. Let's practice speaking today. What's on your mind?" 
-                });
-                setCurrentChatId(res.data._id);
-                setSessionMessages(res.data.messages);
-                speakResponse("Hello! I'm your English Coach. Let's practice speaking today. What's on your mind?");
-            } catch (err) {
-                console.error("Failed to start session:", err);
-            }
-        };
-        initSession();
+        const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v3') || '{}');
+        setXp(stored.xp || 0);
+        calculateLevel(stored.xp || 0);
+        setEarnedBadges(stored.badges || []);
+        setWeakAreas(stored.weakAreas || []);
+        setAnalytics(prev => ({
+            ...prev,
+            ...stored.lastAnalytics
+        }));
         return () => window.speechSynthesis.cancel();
     }, []);
 
@@ -333,62 +392,97 @@ export default function EnglishPracticePage() {
         incrementUsage();
         
         try {
+            // Handle Repeat & Improve comparison
+            if (isRepeating) {
+                const target = targetSentence.toLowerCase().replace(/[.,!?;:]/g, "");
+                const input = text.toLowerCase().replace(/[.,!?;:]/g, "");
+                const similarity = input === target ? 100 : 0; // Simple for now
+                
+                if (similarity === 100) {
+                    awardXP(15, "Perfect Sync! 🔥");
+                    setSessionMessages(prev => [...prev, 
+                        { role: 'user', content: `(Repeating) ${text}` },
+                        { role: 'assistant', content: "Perfectly repeated! You have mastered that sentence. Great job!" }
+                    ]);
+                    speakResponse("Perfectly repeated! You have mastered that sentence.");
+                } else {
+                    setSessionMessages(prev => [...prev, 
+                        { role: 'user', content: `(Repeating) ${text}` },
+                        { role: 'assistant', content: `Almost! You said: "${text}". Try one more time to match our target: "${targetSentence}"` }
+                    ]);
+                    speakResponse("Almost! Give it one more try to match the target.");
+                }
+                setIsRepeating(false);
+                setTargetSentence("");
+                setStatus('online');
+                return;
+            }
+
             const res = await api.post("/chat/send", {
                 message: text,
                 chatId: currentChatId,
-                englishMode: true
+                englishMode: true,
+                scenario,
+                personality,
+                difficulty
             });
 
             const { reply } = res.data;
             
-            // Parse feedback
-            const corrMatch = reply.match(/CORRECTION:\s*(.*?)(?=\n|EXPLANATION:|$)/i);
-            const explMatch = reply.match(/EXPLANATION:\s*(.*?)(?=\n|$)/i);
-            
-            const isPerfect = corrMatch && corrMatch[1].toLowerCase().includes('perfect');
+            // Advanced Parsing
+            const corrMatch = reply.match(/CORRECTION:\s*(.*?)(?=\n|CATEGORY:|$)/i);
+            const explMatch = reply.match(/EXPLANATION:\s*(.*?)(?=\n|CATEGORY:|$)/i);
+            const catMatch = reply.match(/CATEGORY:\s*(.*?)(?=\n|SCORES:|$)/i);
+            const scoresMatch = reply.match(/SCORES:\s*\[Grammar:\s*(\d+)\/100,\s*Vocabulary:\s*(\d+)\/100,\s*Fluency:\s*(\d+)\/100\]/i);
 
-            if (corrMatch && !isPerfect) {
+            const correctionText = (corrMatch ? corrMatch[1].trim() : "").replace(/^\"|\"$/g, "");
+            const isPerfect = correctionText.toLowerCase().includes('perfect');
+
+            if (scoresMatch) {
+                setAnalytics(prev => {
+                    const next = {
+                        ...prev,
+                        grammarScore: parseInt(scoresMatch[1]),
+                        vocabScore: parseInt(scoresMatch[2]),
+                        fluency: parseInt(scoresMatch[3]),
+                        accuracy: Math.round((parseInt(scoresMatch[1]) + parseInt(scoresMatch[2])) / 2)
+                    };
+                    const stored = JSON.parse(localStorage.getItem('kynara_coach_stats_v3') || '{}');
+                    stored.lastAnalytics = next;
+                    localStorage.setItem('kynara_coach_stats_v3', JSON.stringify(stored));
+                    return next;
+                });
+            }
+
+            if (!isPerfect && correctionText.length > 2) {
                 const newMistake = {
                     id: Date.now(),
                     wrong: text,
-                    correction: corrMatch[1].trim(), // Fixed property name
-                    explanation: explMatch ? explMatch[1].trim() : ""
+                    correction: correctionText,
+                    explanation: explMatch ? explMatch[1].trim() : "Improve your sentence structure.",
+                    category: catMatch ? catMatch[1].trim() : "Grammar"
                 };
                 setMistakes(prev => [newMistake, ...prev]);
                 setLastCorrection(newMistake);
                 handleSentenceGamify(false);
-            } else if (isPerfect) {
-                setLastCorrection({ status: 'perfect' });
+            } else {
+                setLastCorrection({ correction: "Perfect Delivery! 🔥" });
                 handleSentenceGamify(true);
             }
 
-            // Clean reply for rendering
-            let cleanReply = reply.replace(/CORRECTION:[\s\S]*?EXPLANATION:.*?(\n\n|\n|$)/i, "").trim();
-            
-            // Fallback: If AI only gave correction but zero conversation, use a default fallback or keep it raw
-            if (!cleanReply && !reply.includes('CORRECTION:')) {
-                cleanReply = reply;
-            } else if (!cleanReply) {
-                cleanReply = "I understand. Tell me more about that!"; // Default bridge if AI forgets to converse
-            }
+            let cleanReply = reply.replace(/CORRECTION:[\s\S]*?SCORES:.*?(\n\n|\n|$)/i, "").trim();
+            if (!cleanReply) cleanReply = isPerfect ? "Exactly! Your phrasing was excellent." : "I've noted that correction for you. Shall we continue?";
 
             setSessionMessages(prev => [...prev, 
                 { role: 'user', content: text },
                 { role: 'assistant', content: cleanReply }
             ]);
             
-            // Calculate a simple fluency score
-            const fluency = Math.max(0, 100 - (mistakes.length * 5) + (sessionMessages.length * 2));
-            
-            // Simulate thinking delay before voice
-            setTimeout(() => {
-                speakResponse(cleanReply);
-            }, 800);
-
+            speakResponse(cleanReply);
             setStatus('online');
             setTranscript("");
         } catch (err) {
-            console.error("Coach fetch failed:", err);
+            console.error("Session Submit Error:", err);
             setStatus('online');
         }
     };
@@ -481,9 +575,145 @@ export default function EnglishPracticePage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
+            {/* Main Content Area */}
             <div className="flex-1 flex relative">
                 
+                {/* Configuration Overlay */}
+                <AnimatePresence>
+                    {configMode && (
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 z-[60] bg-[#050508]/95 backdrop-blur-2xl flex items-center justify-center p-6"
+                        >
+                            <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                <div className="space-y-8">
+                                    <div>
+                                        <h2 className="text-4xl font-black text-white mb-2 flex items-center gap-3">
+                                            Setup Your Session <Settings className="text-indigo-400 animate-spin-slow" />
+                                        </h2>
+                                        <p className="text-white/40">Select your scenario and coach personality to begin.</p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <p className="text-xs font-black uppercase tracking-widest text-indigo-400">Select Personality</p>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {PERSONALITIES.map(p => (
+                                                <button 
+                                                    key={p.id}
+                                                    onClick={() => setPersonality(p.id)}
+                                                    className={`p-4 rounded-2xl border transition-all text-left flex items-start gap-4 ${
+                                                        personality === p.id 
+                                                        ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.2)]' 
+                                                        : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                    }`}
+                                                >
+                                                    <span className="text-2xl">{p.icon}</span>
+                                                    <div>
+                                                        <p className={`font-bold ${personality === p.id ? 'text-white' : 'text-white/60'}`}>{p.name}</p>
+                                                        <p className="text-[10px] text-white/30">{p.desc}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-8">
+                                    <div className="space-y-4">
+                                        <p className="text-xs font-black uppercase tracking-widest text-indigo-400">Select Training Mode</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { id: 'conversation', name: 'Real Conversations', icon: <Users size={16}/> },
+                                                { id: 'shadowing', name: 'Shadowing Flow', icon: <Volume2 size={16}/> },
+                                                { id: 'thinkfast', name: 'Think Fast! ⚡', icon: <Timer size={16}/> },
+                                                { id: 'mocktest', name: 'Mock Test / Battle', icon: <Trophy size={16}/> }
+                                            ].map(m => (
+                                                <button
+                                                    key={m.id}
+                                                    onClick={() => setTrainingMode(m.id)}
+                                                    className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${
+                                                        trainingMode === m.id
+                                                        ? 'bg-indigo-600/30 border-indigo-500 text-white'
+                                                        : 'bg-white/5 border-white/5 text-white/40 hover:border-white/20'
+                                                    }`}
+                                                >
+                                                    {m.icon} <span className="text-[10px] font-black uppercase tracking-widest">{m.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <p className="text-xs font-black uppercase tracking-widest text-indigo-400">Select Difficulty</p>
+                                        <div className="flex gap-2">
+                                            {['beginner', 'intermediate', 'advanced'].map(level => (
+                                                <button
+                                                    key={level}
+                                                    onClick={() => setDifficulty(level)}
+                                                    className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                                        difficulty === level
+                                                        ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                                                        : 'bg-white/5 border-white/5 text-white/30 hover:text-white/60'
+                                                    }`}
+                                                >
+                                                    {level}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <p className="text-xs font-black uppercase tracking-widest text-indigo-400">Select Practice Scenario</p>
+                                        <div className="grid grid-cols-2 gap-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                            {SCENARIOS.map(s => (
+                                                <button 
+                                                    key={s.id}
+                                                    onClick={() => setScenario(s.id)}
+                                                    className={`p-4 rounded-2xl border transition-all text-left flex flex-col gap-3 ${
+                                                        scenario === s.id 
+                                                        ? 'bg-emerald-600/20 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' 
+                                                        : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                    }`}
+                                                >
+                                                    <div className={`${scenario === s.id ? 'text-emerald-400' : 'text-white/40'}`}>
+                                                        {s.icon}
+                                                    </div>
+                                                    <p className={`font-bold text-xs ${scenario === s.id ? 'text-white' : 'text-white/60'}`}>{s.name}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-8">
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={startSession}
+                                            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-2xl flex items-center justify-center gap-3 group"
+                                        >
+                                            Start Training Session <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                        </motion.button>
+                                    </div>
+
+                                    <div className="flex items-center justify-around p-4 bg-white/5 rounded-2xl">
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-1">XP Bonus</p>
+                                            <p className="text-sm font-black text-amber-500">+50</p>
+                                        </div>
+                                        <div className="w-px h-8 bg-white/10" />
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-1">Difficulty</p>
+                                            <p className="text-sm font-black text-white">{difficulty.toUpperCase()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Center Panel - The Avatar */}
                 <div className="flex-1 relative flex flex-col">
                     <div className="flex-1 w-full relative">
@@ -664,60 +894,128 @@ export default function EnglishPracticePage() {
                             {!dailyLimitReached && <div className="absolute inset-0 rounded-full border-4 border-white/10 animate-ping" style={{ animationDuration: '3s' }} />}
                             {dailyLimitReached ? <MicOff size={40} /> : isListening ? <MicOff size={40} /> : <Mic size={40} />}
                         </motion.button>
-                        <div className="flex flex-col items-center">
-                            <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-1 ${dailyLimitReached ? 'text-rose-400' : 'text-white/40'}`}>
-                                {dailyLimitReached ? "Daily free limit reached (15/15)" : isListening ? "Listening to voice..." : "Click to start speaking"}
+                        <div className="absolute inset-x-0 bottom-32 flex flex-col items-center justify-center p-6 z-50 pointer-events-none">
+                        <AnimatePresence>
+                            {isListening && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="max-w-xl w-full text-center"
+                                >
+                                    <div className="bg-[#0a0a0f]/80 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 shadow-[0_0_50px_rgba(99,102,241,0.2)]">
+                                        <div className="flex justify-center mb-4">
+                                            <div className="w-12 h-1 bg-indigo-500 rounded-full animate-pulse" />
+                                        </div>
+                                        <p className="text-2xl font-black text-white leading-tight">
+                                            {transcript || "Speak clearly now..."}
+                                        </p>
+                                        <p className="mt-4 text-[10px] uppercase font-black tracking-widest text-indigo-400 animate-pulse">
+                                            Kynara is listening...
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        
+                        <div className="mt-6 flex flex-col items-center gap-2">
+                             <p className={`text-xs font-bold uppercase tracking-widest ${isListening ? 'text-indigo-400' : 'text-white/40'}`}>
+                                {dailyLimitReached ? "Daily free limit reached (15/15)" : isListening ? "Stop Speaking" : "Click to start speaking"}
                             </p>
-                            <div className="flex items-center gap-2 text-indigo-400/60 font-medium text-[11px] uppercase tracking-wider">
-                                <Zap size={12} className={usageCount > 10 ? 'text-amber-400' : ''} /> {usageCount}/15 Generations Used Today
+                            <div className="flex items-center gap-2 text-white/20 font-medium text-[10px] uppercase tracking-widest">
+                                <Sparkles size={10} /> Auto-processing enabled
                             </div>
                         </div>
                     </div>
-                            {/* Right Panel - Feedback & History */}
+                    </div>
+                {/* Right Panel - Feedback & History */}
                 <aside className="w-96 border-l border-white/5 bg-black/40 backdrop-blur-3xl flex flex-col z-10 transition-all duration-500">
-                    <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                        <div className="flex bg-white/5 p-1 rounded-xl">
-                            <button 
-                                onClick={() => setActiveTab('notes')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === 'notes' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
-                            >
-                                Learning Notes
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('history')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
-                            >
-                                Dialogue History
-                            </button>
+                    <div className="p-8 border-b border-white/5">
+                        <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl mb-6">
+                            {['notes', 'history', 'stats'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        activeTab === tab 
+                                        ? 'bg-indigo-600 text-white shadow-lg' 
+                                        : 'text-white/30 hover:text-white/60 hover:bg-white/5'
+                                    }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
                         </div>
-                        <span className="bg-white/5 text-white/40 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
-                            {activeTab === 'notes' ? mistakes.length : Math.floor(sessionMessages.length / 2)} Total
-                        </span>
-                    </div>
 
-                    {/* Session Insights Grid (only in notes tab) */}
-                    {activeTab === 'notes' && (
-                        <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
-                            <div className="p-4 bg-black/20 text-center">
-                                <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Accuracy</p>
-                                <p className="text-xl font-black text-indigo-400">
-                                    {sessionMessages.length > 2 
-                                        ? Math.round(((sessionMessages.length/2 - mistakes.length) / (sessionMessages.length/2)) * 100) 
-                                        : 0}%
-                                </p>
-                            </div>
-                            <div className="p-4 bg-black/20 text-center">
-                                <p className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em] mb-1">Practiced</p>
-                                <p className="text-xl font-black text-indigo-400">{Math.floor(sessionMessages.length / 2)}</p>
-                            </div>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em]">
+                                {activeTab === 'notes' ? 'Learning Notes' : 
+                                 activeTab === 'stats' ? 'Speaking Analytics' : 'Dialogue Flow'}
+                            </h3>
+                            <span className="bg-white/5 text-white/40 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                                {activeTab === 'notes' ? mistakes.length : 
+                                 activeTab === 'stats' ? 'Live' : Math.floor(sessionMessages.length / 2)} Total
+                            </span>
                         </div>
-                    )}
+                    </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                         <AnimatePresence mode='popLayout'>
-                            {activeTab === 'notes' ? (
+                            {activeTab === 'stats' ? (
+                                <motion.div 
+                                    key="stats-view"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="space-y-6"
+                                >
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Fluency</p>
+                                            <p className="text-2xl font-black text-indigo-400">{analytics.fluency}%</p>
+                                        </div>
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Accuracy</p>
+                                            <p className="text-2xl font-black text-emerald-400">{analytics.accuracy}%</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {[
+                                            { label: 'Grammar', score: analytics.grammarScore, color: 'bg-blue-500' },
+                                            { label: 'Vocabulary', score: analytics.vocabScore, color: 'bg-purple-500' },
+                                            { label: 'Pronunciation', score: analytics.pronunciationScore, color: 'bg-rose-500' }
+                                        ].map(stat => (
+                                            <div key={stat.label} className="space-y-2">
+                                                <div className="flex justify-between text-[10px] font-bold uppercase">
+                                                    <span className="text-white/50">{stat.label}</span>
+                                                    <span className="text-white">{stat.score}/100</span>
+                                                </div>
+                                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                    <motion.div 
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${stat.score}%` }}
+                                                        className={`h-full ${stat.color} shadow-[0_0_10px_rgba(255,255,255,0.2)]`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                                        <div className="flex items-center gap-2 mb-2 text-indigo-300">
+                                            <Brain size={16} />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Growth AI Focus</span>
+                                        </div>
+                                        <p className="text-xs text-indigo-200/70 leading-relaxed italic">
+                                            "Focus on using more 'connector words' to improve your fluency score."
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            ) : activeTab === 'notes' ? (
                                 mistakes.length === 0 ? (
                                     <motion.div 
+                                        key="empty-notes"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         className="h-full flex flex-col items-center justify-center text-center p-8"
@@ -756,6 +1054,18 @@ export default function EnglishPracticePage() {
                                                                 <p className="text-xs text-white/40 italic">{mistake.explanation}</p>
                                                             </div>
                                                         )}
+                                                    </div>
+                                                    <div className="mt-4 flex gap-2">
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setIsRepeating(true);
+                                                                setTargetSentence(mistake.correction);
+                                                            }}
+                                                            className="flex-1 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-500/20 transition-all"
+                                                        >
+                                                            Practice Saying This
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>

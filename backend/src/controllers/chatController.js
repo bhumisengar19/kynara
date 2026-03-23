@@ -282,9 +282,10 @@ export const sendMessage = async (req, res) => {
       let userMsg = (contextInfo ? `CONTEXT FROM ATTACHED FILES:\n${contextInfo}\n\nUSER MESSAGE: ` : "") + (message || "");
       
       if (englishMode) {
+          const { scenario, personality, difficulty } = req.body;
           const historyText = formatHistory(chat.messages.slice(0, -1));
-          prompt = PROMPTS.ENGLISH_COACH(historyText, message);
-          console.log(`[ENGLISH_COACH] Prompt generated for message: "${message}"`);
+          prompt = PROMPTS.ENGLISH_COACH(historyText, message, scenario, personality, difficulty);
+          console.log(`[ENGLISH_COACH] Mode: ${scenario}, Persona: ${personality}, Difficulty: ${difficulty}`);
       } else {
           let systemInstructions = "";
           if (deepSearch) {
