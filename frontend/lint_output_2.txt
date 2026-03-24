@@ -1,0 +1,6 @@
+﻿
+C:\Users\bhumi\OneDrive\Desktop\New folder (2)\QuickGPT\frontend\src\pages\EnglishPracticePage.jsx
+  408:11  error  Parsing error: Identifier 'calculateLevel' has already been declared
+
+Γ£û 1 problem (1 error, 0 warnings)
+

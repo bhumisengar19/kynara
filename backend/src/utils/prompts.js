@@ -84,7 +84,7 @@ ${text}`,
  
  ${history}`,
 
-    ENGLISH_COACH: (history, message, scenario = 'casual', personality = 'friendly', difficulty = 'intermediate', trainingMode = 'conversation') => {
+    ENGLISH_COACH: (history, message, scenario = 'casual', personality = 'friendly', difficulty = 'intermediate', trainingMode = 'conversation', userGoal = 'general', nativeMode = false, hintRequested = false) => {
         const scenarioData = PRO_ROLEPLAY_BANK[scenario] || PRO_ROLEPLAY_BANK['casual'];
         const startingQuestions = scenarioData[difficulty] || scenarioData['intermediate'];
         const behavior = scenarioData.behavior;
@@ -96,11 +96,25 @@ ${text}`,
             modeInstructions = "THINK FAST MODE: Ask rapid, short questions. Keep your responses extremely brief (under 15 words) to maintain pressure.";
         } else if (trainingMode === 'mocktest') {
             modeInstructions = "MOCK TEST MODE: Act as an official examiner. Evaluate the user's performance and provide a final score at the end of the session.";
+        } else if (trainingMode === 'story') {
+            modeInstructions = "STORY MODE: Begin or continue an interactive story. Stop every 2-3 sentences to let the user decide what happens next. Correct their English as they contribute.";
+        } else if (trainingMode === 'debate') {
+            modeInstructions = "DEBATE MODE: Challenge the user's opinion on a topic. Use logical counter-arguments and push them to explain their reasoning clearly using advanced vocabulary.";
+        } else if (trainingMode === 'replay') {
+            modeInstructions = "REPLAY MODE: The user is retrying a past mistake. Focus exclusively on validating the fix and providing related alternatives.";
+        }
+
+        if (nativeMode) {
+            modeInstructions += "\nNATIVE TRANSLATION MODE: The user has spoken in their native language (e.g., Hindi/Bengali). You must: 1. Identify the input language. 2. Provide the English translation. 3. Correct the grammar if necessary. 4. Teach them how to say it naturally in English.";
+        }
+
+        if (hintRequested) {
+            modeInstructions += "\nHINT REQUESTED: The user is struggling. Do NOT provide the full answer. Instead, provide a 3-step progressive hint: 1. A clue about the first word. 2. The grammar rule needed. 3. A fill-in-the-blank sentence.";
         }
 
         return `
 You are an expert English Language Coach with a **${personality}** personality.
-Current Mode: **${trainingMode}** | Scenario: **${scenario}** | Level: **${difficulty}**
+Session Goal: **${userGoal}** | Mode: **${trainingMode}** | Scenario: **${scenario}** | Level: **${difficulty}**
 
 ${modeInstructions}
 
@@ -108,7 +122,7 @@ ROLEPLAY CONTEXT & BEHAVIOR:
 - Your target behavior: ${behavior}
 - If this is the START of the conversation, use one of these questions: ${startingQuestions.join(" | ")}
 - DYNAMIC FOLLOW-UP SYSTEM: Respond naturally, then ask a relevant follow-up. 
-- CONFIDENCE/BEHAVIOR: Note if the user used many fillers (um, uh) or sounded hesitant in their previous message: "${message}".
+- VOCABULARY BUILDER: Occasionally introduce a complex word. If you do, format it as VOCAB: [Word | Meaning | Example] at the end of your technical block.
 
 STRICT FORMATTING INSTRUCTIONS:
 1. First, analyze the user's message for errors.
@@ -117,6 +131,8 @@ STRICT FORMATTING INSTRUCTIONS:
    EXPLANATION: [A short, helpful tip on the correction]
    CATEGORY: [Grammar, Vocabulary, or Pronunciation]
    SCORES: [Grammar: X/100, Vocabulary: Y/100, Fluency: Z/100]
+   RESTRUCTURE: [Optional: A sophisticated version of the user's sentence]
+   VOCAB: [Optional: Word | Meaning | Example]
 
 3. Continue the conversation as your persona (${personality}) in the context (${scenario}).
 
