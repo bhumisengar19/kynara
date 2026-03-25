@@ -122,6 +122,7 @@ export default function EnglishPracticePage() {
     const scrollRef = useRef(null);
     const audioContextRef = useRef(null);
     const analystRef = useRef(null);
+    const transcriptRef = useRef(""); // Use ref for real-time transcript to avoid stale closures in listeners
 
     // Particle/Aesthetic Data (Memoized to avoid render cycle impurities)
     const atmosphericParticles = useMemo(() => Array.from({ length: 40 }).map((_, i) => ({
@@ -408,7 +409,10 @@ export default function EnglishPracticePage() {
         stored.count = (stored.count || 0) + 1;
         localStorage.setItem('kynara_coach_stats_v2', JSON.stringify(stored));
         setUsageCount(stored.count);
-        if (stored.count >= 15) setDailyLimitReached(true);
+        if (stored.count >= 50) setDailyLimitReached(true);
+        if (stored.count === 45) {
+            addNotification("warning", "Coach Insight: You're approaching your daily practice limit. Use these last sentences well!", 5000);
+        }
     }
 
     const downloadBadge = (badge) => {
@@ -585,17 +589,23 @@ export default function EnglishPracticePage() {
         recognition.onstart = () => {
             setIsListening(true);
             setTranscript("");
+            transcriptRef.current = "";
         };
 
         recognition.onresult = (event) => {
             const currentTranscript = event.results[0][0].transcript;
             setTranscript(currentTranscript);
+            transcriptRef.current = currentTranscript; // Update ref for callbacks
         };
 
         recognition.onend = () => {
             setIsListening(false);
-            if (transcript.trim()) {
-                submitToCoach(transcript);
+            const finalTranscript = transcriptRef.current;
+            if (finalTranscript.trim()) {
+                submitToCoach(finalTranscript);
+                transcriptRef.current = ""; // Reset for next time
+            } else {
+                addNotification("info", "AI Coach: I didn't quite catch that. Could you repeat?", 3000);
             }
         };
 
@@ -673,7 +683,7 @@ export default function EnglishPracticePage() {
         const sayItDifferentlyPrompt = sayItDifferently ? " | ACT AS NATIVE COACH: After your response, provide exactly one more natural/native way to say what I just said." : "";
         const multiPersonPrompt = isMultiPerson ? " | GROUP DISCUSSION: Simulate a collaborative or adversarial response from 2 different AI personalities." : "";
         
-            const res = await api.post("/chat/send", {
+            const res = await api.post("/chat", {
                 message: text + sayItDifferentlyPrompt + multiPersonPrompt,
                 chatId: currentChatId,
                 englishMode: true,
@@ -775,7 +785,21 @@ export default function EnglishPracticePage() {
                 });
             }
 
-            let cleanReply = reply.replace(/CORRECTION:[\s\S]*?SCORES:.*?(\n\n|\n|$)/i, "").trim();
+            // Multi-pass cleaning for technical tags to ensure conversational clarity
+            let cleanReply = reply
+                .replace(/CORRECTION:[\s\S]*?(?=EXPLANATION:|$)/i, "")
+                .replace(/EXPLANATION:[\s\S]*?(?=CATEGORY:|$)/i, "")
+                .replace(/CATEGORY:[\s\S]*?(?=SCORES:|$)/i, "")
+                .replace(/SCORES:[\s\S]*?(?=RESTRUCTURE:|$)/i, "")
+                .replace(/RESTRUCTURE:[\s\S]*?(?=VOCAB:|$)/i, "")
+                .replace(/VOCAB:[\s\S]*?(?=\n\n|\n[A-Z]+:|$)/i, "")
+                .replace(/^\[.*?\]/g, "") // Remove any remaining bracketed metadata
+                .trim();
+
+            if (!cleanReply && reply) {
+                // Fallback: if cleaning removed everything, use the raw reply (safety)
+                cleanReply = reply.split(/\n\n/)[reply.split(/\n\n/).length - 1] || reply;
+            }
 
             // Interruption system: Simulate natural flow
             if (Math.random() < 0.15) {
@@ -796,11 +820,14 @@ export default function EnglishPracticePage() {
                 setIsTimerActive(true);
             }
 
+            setThinkingState(null);
             setStatus('online');
             setTranscript("");
         } catch (err) {
             console.error("Session Submit Error:", err);
+            setThinkingState(null); // Ensure thinking animation is cleared on fail
             setStatus('online');
+            addNotification("error", "The Coach is having a quick break. Try sending that again!", 4000);
         }
     };
 
@@ -814,15 +841,16 @@ export default function EnglishPracticePage() {
                     addNotification("info", "AI Coach: Wait, sorry to interrupt—actually, I have a quick thought!", 4000);
                     if (recognitionRef.current) {
                         try {
-                            recognitionRef.current.stop();
+                            // Adding flag to transcript Ref for onend to pick up
+                            transcriptRef.current += " [INTERRUPTED]";
+                            recognitionRef.current.stop(); // Triggers onend -> submitToCoach
                         } catch (e) {}
                     }
-                    submitToCoach(transcript + " [USER INTERRUPTED]"); 
                 }
             }, 5000);
         }
         return () => clearInterval(interval);
-    }, [isListening, transcript, status]);
+    }, [isListening, status]);
 
     const finishSession = () => {
         const stats = {
@@ -954,12 +982,12 @@ export default function EnglishPracticePage() {
 
                 {/* Configuration Overlay */}
                 <AnimatePresence>
-                    {configMode && (
+                    {configMode && activeView === 'practice' && (
                         <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 z-50 bg-[#050508]/80 backdrop-blur-3xl flex items-center justify-center p-8"
+                            className="absolute inset-0 z-50 bg-[#050508]/95 backdrop-blur-3xl flex flex-col items-center justify-start p-8 overflow-y-auto custom-scrollbar"
                         >
                             <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div className="space-y-8">
@@ -997,7 +1025,7 @@ export default function EnglishPracticePage() {
                                 <div className="space-y-8">
                                     <div className="space-y-4">
                                         <p className="text-xs font-black uppercase tracking-widest text-indigo-400">Select Training Mode</p>
-                                        <div className="grid grid-cols-2 gap-3 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                                        <div className="grid grid-cols-2 gap-3 pr-1">
                                             {[
                                                 { id: 'conversation', name: 'Real Conversations', icon: <Users size={16}/> },
                                                 { id: 'shadowing', name: 'Shadowing Flow', icon: <Volume2 size={16}/> },
@@ -1067,7 +1095,7 @@ export default function EnglishPracticePage() {
 
                                     <div className="space-y-4">
                                         <p className="text-xs font-black uppercase tracking-widest text-indigo-400">Select Practice Scenario</p>
-                                        <div className="grid grid-cols-2 gap-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                                        <div className="grid grid-cols-2 gap-3 pr-2">
                                             {SCENARIOS.map(s => (
                                                 <button 
                                                     key={s.id}
