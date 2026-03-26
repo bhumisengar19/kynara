@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { Environment, ContactShadows, PerspectiveCamera } from '@react-three/drei';
-import { Mic, MicOff, Volume2, Trophy, AlertCircle, BookOpen, ArrowLeft, History, Zap, Award, Star, Download, Linkedin, Share2, X, ChevronRight, CheckCircle2, Lock, Settings, Briefcase, ShoppingBag, Plane, Coffee, Users, Target, BarChart3, Brain, Sparkles, RefreshCcw, Stethoscope, Utensils, Timer, Shield, Swords, FileText, Layout, GraduationCap, Gamepad2, BookMarked, MessageSquarePlus, Lightbulb, Languages, Repeat, Map } from 'lucide-react';
+import { Mic, MicOff, Volume2, Trophy, AlertCircle, BookOpen, ArrowLeft, History, Zap, Award, Star, Download, Linkedin, Share2, X, ChevronRight, CheckCircle2, Lock, Settings, Briefcase, ShoppingBag, Plane, Coffee, Users, Target, BarChart3, Brain, Sparkles, RefreshCcw, Stethoscope, Utensils, Timer, Shield, Swords, FileText, Layout, GraduationCap, Gamepad2, BookMarked, MessageSquarePlus, Lightbulb, Languages, Repeat, Map, Keyboard, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarModel } from '../components/FloatingAvatar';
 import { useAuth } from '../context/AuthContext';
@@ -110,6 +110,16 @@ export default function EnglishPracticePage() {
 
     const [preSpeakingTip, setPreSpeakingTip] = useState(null);
     const [difficultyLevel, setDifficultyLevel] = useState(1); // 1-5 Scale
+    const [showTypeInput, setShowTypeInput] = useState(false);
+    const [typeInputValue, setTypeInputValue] = useState("");
+    const [repeatedMistakes, setRepeatedMistakes] = useState({});
+
+    // GAME HUB STATES
+    const [activeGame, setActiveGame] = useState(null); // 'scramble', 'blanks'
+    const [gameData, setGameData] = useState(null);
+    const [userSelection, setUserSelection] = useState([]);
+    const [gameStatus, setGameStatus] = useState('idle'); // 'playing', 'correct', 'wrong'
+    const [gameScore, setGameScore] = useState(0);
     
     // NOTIFICATION & ENGAGEMENT STATES
     const [notifications, setNotifications] = useState([]); // [{id, type, message, duration}]
@@ -184,11 +194,79 @@ export default function EnglishPracticePage() {
         }
     }
 
+
+
     const PERSONALITIES = [
         { id: 'friendly', name: 'Friendly Coach', icon: '😊', desc: 'Encouraging and supportive feedback', color: 'text-emerald-400' },
         { id: 'strict', name: 'Strict Teacher', icon: '👨‍🏫', desc: 'Focus on precision and hard rules', color: 'text-rose-400' },
         { id: 'mentor', name: 'Professional Mentor', icon: '💼', desc: 'Business-focused, career-ready advice', color: 'text-indigo-400' }
     ];
+
+    const SCRAMBLE_BANK = [
+        "The quick brown fox jumps over the lazy dog",
+        "Learning a new language opens many doors",
+        "Consistency is the key to mastering English",
+        "I hope you have a wonderful day ahead",
+        "Practice makes perfect in every field of life"
+    ];
+
+    const BLANKS_BANK = [
+        { sentence: "I ___ to the gym every morning.", choices: ["go", "goes", "gone", "going"], answer: "go" },
+        { sentence: "She ___ finished her homework yet.", choices: ["hasn't", "haven't", "doesn't", "wasn't"], answer: "hasn't" },
+        { sentence: "They are looking forward ___ you.", choices: ["to see", "to seeing", "seeing", "for seeing"], answer: "to seeing" },
+        { sentence: "Where ___ you yesterday afternoon?", choices: ["was", "were", "did", "are"], answer: "were" }
+    ];
+
+    function startScramble() {
+        const sentence = SCRAMBLE_BANK[Math.floor(Math.random() * SCRAMBLE_BANK.length)];
+        const words = sentence.split(" ");
+        const scrambled = [...words].sort(() => Math.random() - 0.5);
+        setGameData({ original: sentence, words: scrambled, target: words });
+        setUserSelection([]);
+        setGameStatus('playing');
+        setActiveGame('scramble');
+    }
+
+    function startBlanks() {
+        const item = BLANKS_BANK[Math.floor(Math.random() * BLANKS_BANK.length)];
+        setGameData(item);
+        setGameStatus('playing');
+        setActiveGame('blanks');
+    }
+
+    function handleScrambleWord(word, index) {
+        if (gameStatus !== 'playing') return;
+        const newSelection = [...userSelection, word];
+        setUserSelection(newSelection);
+        
+        const remainingWords = [...gameData.words];
+        remainingWords.splice(index, 1);
+        setGameData(prev => ({ ...prev, words: remainingWords }));
+
+        if (newSelection.length === gameData.target.length) {
+            if (newSelection.join(" ") === gameData.original) {
+                setGameStatus('correct');
+                setGameScore(prev => prev + 10);
+                setXp(prev => prev + 20);
+                addNotification("success", "Brain Power Optimized! +20 XP", 3000);
+            } else {
+                setGameStatus('wrong');
+                addNotification("error", "Neural Mismatch. Try again!", 3000);
+            }
+        }
+    }
+
+    function handleBlankChoice(choice) {
+        if (gameStatus !== 'playing') return;
+        if (choice === gameData.answer) {
+            setGameStatus('correct');
+            setGameScore(prev => prev + 10);
+            setXp(prev => prev + 15);
+            addNotification("success", "Linguistic Precision! +15 XP", 3000);
+        } else {
+            setGameStatus('wrong');
+        }
+    }
 
     const SCENARIOS = [
         { id: 'casual', name: 'Casual Talk', icon: <Coffee size={20} />, prompt: "Let's have a relaxed chat about your day or interests." },
@@ -1437,63 +1515,116 @@ export default function EnglishPracticePage() {
 
                                     {/* Bottom Controls */}
                                     <div className="p-12 w-full max-w-2xl mx-auto flex flex-col items-center justify-center gap-6 bg-gradient-to-t from-[#050508] to-transparent z-10">
-                                        <div className="flex items-center gap-4 w-full">
-                                            <button 
-                                                onClick={() => setNativeMode(!nativeMode)}
-                                                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
-                                                    nativeMode 
-                                                    ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
-                                                    : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
+                                        <div className="space-y-4 w-full">
+                                            <AnimatePresence>
+                                                {showTypeInput && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: 10 }}
+                                                        className="relative w-full"
+                                                    >
+                                                        <input 
+                                                            type="text"
+                                                            value={typeInputValue}
+                                                            onChange={(e) => setTypeInputValue(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' && typeInputValue.trim()) {
+                                                                    submitToCoach(typeInputValue);
+                                                                    setTypeInputValue("");
+                                                                    setShowTypeInput(false);
+                                                                }
+                                                            }}
+                                                            placeholder="Type here for Quiet Mode (Press Enter to send)..."
+                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-white/20"
+                                                            autoFocus
+                                                        />
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (typeInputValue.trim()) {
+                                                                    submitToCoach(typeInputValue);
+                                                                    setTypeInputValue("");
+                                                                    setShowTypeInput(false);
+                                                                }
+                                                            }}
+                                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-300 transition-colors"
+                                                        >
+                                                            <Send size={18}/>
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+ 
+                                            <div className="flex items-center gap-4 w-full relative">
+                                                <button 
+                                                    onClick={() => setShowTypeInput(!showTypeInput)}
+                                                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
+                                                        showTypeInput 
+                                                        ? 'bg-indigo-500/20 border-indigo-500 text-indigo-500' 
+                                                        : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
+                                                    }`}
+                                                    title="Toggle Quiet Mode (Typing)"
+                                                >
+                                                    <Keyboard size={22}/>
+                                                </button>
+ 
+                                                <button 
+                                                    onClick={() => setNativeMode(!nativeMode)}
+                                                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
+                                                        nativeMode 
+                                                        ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
+                                                        : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
+                                                    }`}
+                                                    title="Translate Mode: Speak in your native language"
+                                                >
+                                                    <Languages size={22}/>
+                                                </button>
+ 
+                                                <button 
+                                                    onClick={() => setSayItDifferently(!sayItDifferently)}
+                                                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
+                                                        sayItDifferently 
+                                                        ? 'bg-purple-500/20 border-purple-500 text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
+                                                        : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
                                                 }`}
-                                                title="Translate Mode: Speak in your native language"
-                                            >
-                                                <Languages size={22}/>
-                                            </button>
-
-                                            <button 
-                                                onClick={() => setSayItDifferently(!sayItDifferently)}
-                                                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
-                                                    sayItDifferently 
-                                                    ? 'bg-purple-500/20 border-purple-500 text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
-                                                    : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
-                                                }`}
-                                                title="Say It Differently Mode: Rephrase your sentence like a native"
-                                            >
-                                                <Repeat size={22}/>
-                                            </button>
-
-                                            <button 
-                                                onClick={() => handleVoiceInput()}
-                                                disabled={status === 'thinking'}
-                                                className={`flex-1 h-14 rounded-2xl flex items-center justify-center gap-4 font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl group ${
-                                                    isListening 
-                                                    ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/20' 
-                                                    : 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-indigo-500/20'
-                                                }`}
-                                            >
-                                                {isListening ? <MicOff size={22}/> : <Mic size={22} className="group-hover:scale-110 transition-transform" />}
-                                                {isListening ? (nativeMode ? 'Translating...' : 'Stop Listening') : (nativeMode ? 'Speak Native' : 'Start Speaking')}
-                                            </button>
-
-                                            <button 
-                                                onClick={() => {
-                                                    setHintMode(true);
-                                                    setTimeout(() => setHintMode(false), 3000); // Temporary hint state
-                                                    submitToCoach("I need a hint for this situation.");
-                                                }}
-                                                className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-indigo-400 hover:bg-white/10 transition-all active:scale-95 group"
-                                                title="Get Smart Hint"
-                                            >
-                                                <Lightbulb size={22} className={hintMode ? 'animate-bounce text-amber-400' : ''} />
-                                            </button>
-
-                                            <button 
-                                                onClick={finishSession}
-                                                className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/10 transition-all active:scale-95 group"
-                                                title="Finish Session & View Report"
-                                            >
-                                                <FileText size={22} className="group-hover:text-indigo-400 transition-colors" />
-                                            </button>
+                                                    title="Say It Differently Mode: Rephrase your sentence like a native"
+                                                >
+                                                    <Repeat size={22}/>
+                                                </button>
+ 
+                                                <button 
+                                                    onClick={() => handleVoiceInput()}
+                                                    disabled={status === 'thinking'}
+                                                    className={`flex-1 h-14 rounded-2xl flex items-center justify-center gap-4 font-black uppercase text-xs tracking-[0.2em] transition-all shadow-xl group ${
+                                                        isListening 
+                                                        ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/20' 
+                                                        : 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95 shadow-indigo-500/20'
+                                                    }`}
+                                                >
+                                                    {isListening ? <MicOff size={22}/> : <Mic size={22} className="group-hover:scale-110 transition-transform" />}
+                                                    {isListening ? (nativeMode ? 'Translating...' : 'Stop Listening') : (nativeMode ? 'Speak Native' : 'Start Speaking')}
+                                                </button>
+ 
+                                                <button 
+                                                    onClick={() => {
+                                                        setHintMode(true);
+                                                        setTimeout(() => setHintMode(false), 3000); // Temporary hint state
+                                                        submitToCoach("I need a hint for this situation.");
+                                                    }}
+                                                    className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-indigo-400 hover:bg-white/10 transition-all active:scale-95 group"
+                                                    title="Get Smart Hint"
+                                                >
+                                                    <Lightbulb size={22} className={hintMode ? 'animate-bounce text-amber-400' : ''} />
+                                                </button>
+ 
+                                                <button 
+                                                    onClick={finishSession}
+                                                    className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/10 transition-all active:scale-95 group"
+                                                    title="Finish Session & View Report"
+                                                >
+                                                    <FileText size={22} className="group-hover:text-indigo-400 transition-colors" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1681,22 +1812,145 @@ export default function EnglishPracticePage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex-1 flex items-center justify-center p-12"
+                                className="flex-1 flex flex-col p-12 overflow-y-auto custom-scrollbar"
                             >
-                                <div className="text-center space-y-8 max-w-lg">
-                                    <div className="w-32 h-32 mx-auto rounded-[40px] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.2)]">
-                                        <Gamepad2 size={64} className="text-amber-500" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Mind Games Hub</h2>
-                                        <p className="text-white/40 text-sm leading-relaxed">Interactive sentence rearranging and fill-in-the-blanks are rolling out in the next intelligence update. Keep training to stay ahead.</p>
-                                    </div>
-                                    <button 
-                                        onClick={() => setActiveView('practice')}
-                                        className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl border border-white/5 transition-all"
-                                    >
-                                        Back to Training
-                                    </button>
+                                <div className="max-w-4xl mx-auto w-full space-y-12">
+                                    <header className="flex items-center justify-between">
+                                        <div>
+                                            <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Mind Games Hub</h2>
+                                            <p className="text-white/40">Sharpen your neural linguistic pathways.</p>
+                                        </div>
+                                        <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-3 rounded-2xl">
+                                            <Trophy size={20} className="text-amber-400" />
+                                            <span className="text-lg font-black text-white tracking-widest">{gameScore}</span>
+                                        </div>
+                                    </header>
+
+                                    {!activeGame ? (
+                                        <div className="grid grid-cols-2 gap-8">
+                                            <button onClick={startScramble} className="group p-10 bg-indigo-500/10 border border-indigo-500/20 rounded-[40px] text-left transition-all hover:bg-indigo-500/20 hover:-translate-y-2">
+                                                <div className="w-16 h-16 rounded-[24px] bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform">
+                                                    <Swords size={32} />
+                                                </div>
+                                                <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Neural Scramble</h3>
+                                                <p className="text-white/40 text-sm leading-relaxed">Reorder shuffled linguistic components to reconstruct perfect structures.</p>
+                                            </button>
+
+                                            <button onClick={startBlanks} className="group p-10 bg-amber-500/10 border border-amber-500/20 rounded-[40px] text-left transition-all hover:bg-amber-500/20 hover:-translate-y-2">
+                                                <div className="w-16 h-16 rounded-[24px] bg-amber-500/20 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
+                                                    <Target size={32} />
+                                                </div>
+                                                <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Contextual Blanks</h3>
+                                                <p className="text-white/40 text-sm leading-relaxed">Fill in missing variables to complete technical and casual contextual chains.</p>
+                                            </button>
+                                        </div>
+                                    ) : activeGame === 'scramble' ? (
+                                        <div className="space-y-12 bg-white/[0.02] border border-white/5 p-12 rounded-[48px] relative overflow-hidden">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.3em]">Game: Neural Scramble</span>
+                                                <button onClick={() => setActiveGame(null)} className="text-white/20 hover:text-white transition-colors">
+                                                    <X size={20} />
+                                                </button>
+                                            </div>
+
+                                            <div className="min-h-[120px] p-8 border-2 border-dashed border-white/10 rounded-3xl flex flex-wrap gap-3 items-center justify-center bg-black/20">
+                                                {userSelection.map((word, i) => (
+                                                    <motion.span 
+                                                        key={i}
+                                                        initial={{ scale: 0.8, opacity: 0 }}
+                                                        animate={{ scale: 1, opacity: 1 }}
+                                                        className="px-4 py-2 bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20"
+                                                    >
+                                                        {word}
+                                                    </motion.span>
+                                                ))}
+                                                {userSelection.length === 0 && <p className="text-white/10 italic">Click words below to assemble...</p>}
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-3 justify-center">
+                                                <AnimatePresence>
+                                                    {gameData.words.map((word, i) => (
+                                                        <motion.button
+                                                            key={word + i}
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            exit={{ opacity: 0, scale: 0.8 }}
+                                                            onClick={() => handleScrambleWord(word, i)}
+                                                            className="px-5 py-3 bg-white/5 border border-white/10 text-white font-medium rounded-2xl hover:bg-white/10 hover:border-indigo-500/50 transition-all"
+                                                        >
+                                                            {word}
+                                                        </motion.button>
+                                                    ))}
+                                                </AnimatePresence>
+                                            </div>
+
+                                            {gameStatus !== 'playing' && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="pt-8 text-center"
+                                                >
+                                                    <h4 className={`text-3xl font-black uppercase italic ${gameStatus === 'correct' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {gameStatus === 'correct' ? 'Structure Synchronized!' : 'Linguistic Failure'}
+                                                    </h4>
+                                                    <p className="text-white/40 mt-2 mb-8">
+                                                        {gameStatus === 'correct' ? 'You have successfully reconstructed the sentence.' : `Expected: "${gameData.original}"`}
+                                                    </p>
+                                                    <button onClick={startScramble} className="px-12 py-4 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all">
+                                                        Next Challenge
+                                                    </button>
+                                                </motion.div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-12 bg-white/[0.02] border border-white/5 p-12 rounded-[48px] relative overflow-hidden">
+                                             <div className="flex items-center justify-between mb-8">
+                                                <span className="text-[10px] font-black uppercase text-amber-500 tracking-[0.3em]">Game: Contextual Blanks</span>
+                                                <button onClick={() => setActiveGame(null)} className="text-white/20 hover:text-white transition-colors">
+                                                    <X size={20} />
+                                                </button>
+                                            </div>
+
+                                            <div className="text-center">
+                                                <h3 className="text-4xl font-black text-white leading-tight">
+                                                    {gameData.sentence.split("___")[0]}
+                                                    <span className="px-6 py-1 border-b-4 border-amber-500 text-amber-500 mx-2">
+                                                        {gameStatus === 'correct' ? gameData.answer : '?'}
+                                                    </span>
+                                                    {gameData.sentence.split("___")[1]}
+                                                </h3>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4 max-w-xl mx-auto pt-8">
+                                                {gameData.choices.map((choice, i) => (
+                                                    <button 
+                                                        key={i}
+                                                        onClick={() => handleBlankChoice(choice)}
+                                                        disabled={gameStatus !== 'playing'}
+                                                        className={`p-6 rounded-3xl border text-xl font-bold transition-all ${
+                                                            gameStatus === 'playing' ? 'bg-white/5 border-white/5 hover:border-amber-500/50 hover:bg-white/10' :
+                                                            choice === gameData.answer ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' :
+                                                            choice === userSelection[0] ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-black/20 border-white/5 opacity-40'
+                                                        }`}
+                                                    >
+                                                        {choice}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {gameStatus !== 'playing' && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="pt-8 text-center"
+                                                >
+                                                    <button onClick={startBlanks} className="px-12 py-4 bg-amber-500 text-black font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all">
+                                                        Next Challenge
+                                                    </button>
+                                                </motion.div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         ) : null}
