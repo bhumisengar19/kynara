@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
 import confetti from 'canvas-confetti';
 import { useSearchParams } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 
 // Badge Definitions (Global Registry)
 const ALL_BADGES = [
@@ -946,21 +947,31 @@ export default function EnglishPracticePage() {
         <div className={`fixed inset-0 z-[100] flex flex-col overflow-hidden ${theme === 'dark' ? 'bg-[#050508]' : 'bg-slate-50'}`}>
             
             {/* Header */}
-            <header className="flex items-center justify-between p-6 border-b border-white/5 backdrop-blur-xl bg-black/20 z-10">
+            <header className={`flex items-center justify-between p-6 border-b backdrop-blur-xl z-10 transition-colors ${
+                theme === 'dark' ? 'border-white/5 bg-black/20' : 'border-slate-200 bg-white/20'
+            }`}>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={handleExit}
-                        className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white/70"
+                        className={`p-2 rounded-xl transition-colors ${
+                            theme === 'dark' ? 'hover:bg-white/5 text-white/70' : 'hover:bg-slate-100 text-slate-600'
+                        }`}
                     >
                         <ArrowLeft size={20} />
                     </button>
-            <div>
-                        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                    <div>
+                        <h2 className={`text-xl font-bold tracking-tight flex items-center gap-2 ${
+                            theme === 'dark' ? 'text-white' : 'text-slate-900'
+                        }`}>
                             English Practice <Zap className="text-indigo-400 fill-indigo-400/20" size={16} />
                         </h2>
                         <div className="flex items-center gap-3">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-white/40">Neural Voice Session</p>
-                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            <p className={`text-[11px] font-bold uppercase tracking-widest ${
+                                theme === 'dark' ? 'text-white/40' : 'text-slate-400'
+                            }`}>Neural Voice Session</p>
+                            <span className={`w-1 h-1 rounded-full ${
+                                theme === 'dark' ? 'bg-white/20' : 'bg-slate-200'
+                            }`} />
                             <div className="flex items-center gap-1.5 text-orange-400 text-[11px] font-black uppercase tracking-wider">
                                 <motion.span 
                                     animate={{ scale: [1, 1.2, 1] }} 
@@ -1002,12 +1013,17 @@ export default function EnglishPracticePage() {
                     </motion.button>
                     <div className="flex -space-x-2">
                         {[1,2,3].map(i => (
-                            <div key={i} className="w-8 h-8 rounded-full border-2 border-[#050508] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
+                            <div key={i} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold text-white transition-colors ${
+                                theme === 'dark' ? 'border-[#050508] bg-gradient-to-br from-indigo-500 to-purple-600' : 'border-white bg-gradient-to-br from-indigo-400 to-purple-500'
+                            }`}>
                                 {String.fromCharCode(64+i)}
                             </div>
                         ))}
                     </div>
-                    <span className="text-[13px] font-medium text-white/60">Live Coaching</span>
+                    <span className={`text-[13px] font-medium transition-colors ${
+                        theme === 'dark' ? 'text-white/60' : 'text-slate-500'
+                    }`}>Live Coaching</span>
+                    <ThemeToggle />
                 </div>
             </header>
 
@@ -1034,7 +1050,9 @@ export default function EnglishPracticePage() {
             <div className="flex-1 flex relative overflow-hidden">
                 
                 {/* View Switcher Sidebar (Vertical) */}
-                <div className="w-[70px] border-r border-white/5 bg-[#0a0a0f] flex flex-col items-center py-8 gap-8 z-[60]">
+                <div className={`w-[70px] border-r flex flex-col items-center py-8 gap-8 z-[60] transition-colors ${
+                    theme === 'dark' ? 'border-white/5 bg-[#0a0a0f]' : 'border-slate-200 bg-white'
+                }`}>
                     {[
                         { id: 'practice', icon: <Swords size={20}/>, label: 'Train' },
                         { id: 'hub', icon: <Target size={20}/>, label: 'Goal' },
@@ -1047,7 +1065,7 @@ export default function EnglishPracticePage() {
                             className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all relative group ${
                                 activeView === tab.id 
                                 ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
-                                : 'text-white/20 hover:text-white/60 hover:bg-white/5'
+                                : theme === 'dark' ? 'text-white/20 hover:text-white/60 hover:bg-white/5' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'
                             }`}
                         >
                             {tab.icon}
@@ -1065,15 +1083,19 @@ export default function EnglishPracticePage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 z-50 bg-[#050508]/95 backdrop-blur-3xl flex flex-col items-center justify-start p-8 overflow-y-auto custom-scrollbar"
+                            className={`absolute inset-0 z-50 backdrop-blur-3xl flex flex-col items-center justify-start p-8 overflow-y-auto custom-scrollbar ${
+                                theme === 'dark' ? 'bg-[#050508]/95' : 'bg-white/95'
+                            }`}
                         >
                             <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div className="space-y-8">
                                     <div>
-                                        <h2 className="text-4xl font-black text-white mb-2 flex items-center gap-3">
+                                        <h2 className={`text-4xl font-black mb-2 flex items-center gap-3 ${
+                                            theme === 'dark' ? 'text-white' : 'text-slate-900'
+                                        }`}>
                                             Setup Your Session <Settings className="text-indigo-400 animate-spin-slow" />
                                         </h2>
-                                        <p className="text-white/40">Select your scenario and coach personality to begin.</p>
+                                        <p className={`${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>Select your scenario and coach personality to begin.</p>
                                     </div>
 
                                     <div className="space-y-4">
@@ -1086,13 +1108,13 @@ export default function EnglishPracticePage() {
                                                     className={`p-4 rounded-2xl border transition-all text-left flex items-start gap-4 ${
                                                         personality === p.id 
                                                         ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.2)]' 
-                                                        : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-white/10' : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                                                     }`}
                                                 >
                                                     <span className="text-2xl">{p.icon}</span>
                                                     <div>
-                                                        <p className={`font-bold ${personality === p.id ? 'text-white' : 'text-white/60'}`}>{p.name}</p>
-                                                        <p className="text-[10px] text-white/30">{p.desc}</p>
+                                                        <p className={`font-bold ${personality === p.id ? (theme === 'dark' ? 'text-white' : 'text-slate-900') : (theme === 'dark' ? 'text-white/60' : 'text-slate-500')}`}>{p.name}</p>
+                                                        <p className={`text-[10px] ${theme === 'dark' ? 'text-white/30' : 'text-slate-400'}`}>{p.desc}</p>
                                                     </div>
                                                 </button>
                                             ))}
@@ -1119,7 +1141,7 @@ export default function EnglishPracticePage() {
                                                     className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${
                                                         trainingMode === m.id
                                                         ? 'bg-indigo-600/30 border-indigo-500 text-white'
-                                                        : 'bg-white/5 border-white/5 text-white/40 hover:border-white/20'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 text-white/40 hover:border-white/20' : 'bg-slate-100 border-slate-200 text-slate-400 hover:border-slate-300'
                                                     }`}
                                                 >
                                                     {m.icon} <span className="text-[10px] font-black uppercase tracking-widest">{m.name}</span>
@@ -1143,7 +1165,7 @@ export default function EnglishPracticePage() {
                                                     className={`py-2 px-3 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all ${
                                                         userGoal === g.id
                                                         ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
-                                                        : 'bg-white/5 border-white/5 text-white/20'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 text-white/20' : 'bg-slate-100 border-slate-200 text-slate-400'
                                                     }`}
                                                 >
                                                     {g.name}
@@ -1162,7 +1184,7 @@ export default function EnglishPracticePage() {
                                                     className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
                                                         difficulty === level
                                                         ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                                                        : 'bg-white/5 border-white/5 text-white/30 hover:text-white/60'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 text-white/30 hover:text-white/60' : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-600'
                                                     }`}
                                                 >
                                                     {level}
@@ -1181,13 +1203,13 @@ export default function EnglishPracticePage() {
                                                     className={`p-4 rounded-2xl border transition-all text-left flex flex-col gap-3 ${
                                                         scenario === s.id 
                                                         ? 'bg-emerald-600/20 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' 
-                                                        : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-white/10' : 'bg-slate-100 border-slate-200 hover:border-slate-300'
                                                     }`}
                                                 >
-                                                    <div className={`${scenario === s.id ? 'text-emerald-400' : 'text-white/40'}`}>
+                                                    <div className={`${scenario === s.id ? 'text-emerald-400' : (theme === 'dark' ? 'text-white/40' : 'text-slate-400')}`}>
                                                         {s.icon}
                                                     </div>
-                                                    <p className={`font-bold text-xs ${scenario === s.id ? 'text-white' : 'text-white/60'}`}>{s.name}</p>
+                                                    <p className={`font-bold text-xs ${scenario === s.id ? (theme === 'dark' ? 'text-white' : 'text-slate-900') : (theme === 'dark' ? 'text-white/60' : 'text-slate-500')}`}>{s.name}</p>
                                                 </button>
                                             ))}
                                         </div>
@@ -1204,15 +1226,17 @@ export default function EnglishPracticePage() {
                                         </motion.button>
                                     </div>
 
-                                    <div className="flex items-center justify-around p-4 bg-white/5 rounded-2xl">
+                                    <div className={`flex items-center justify-around p-4 rounded-2xl transition-colors ${
+                                        theme === 'dark' ? 'bg-white/5' : 'bg-slate-100'
+                                    }`}>
                                         <div className="text-center">
-                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-1">XP Bonus</p>
+                                            <p className={`text-[10px] font-bold uppercase mb-1 ${theme === 'dark' ? 'text-white/30' : 'text-slate-400'}`}>XP Bonus</p>
                                             <p className="text-sm font-black text-amber-500">+50</p>
                                         </div>
-                                        <div className="w-px h-8 bg-white/10" />
+                                        <div className={`w-px h-8 ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-200'}`} />
                                         <div className="text-center">
-                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-1">Difficulty</p>
-                                            <p className="text-sm font-black text-white">{difficulty.toUpperCase()}</p>
+                                            <p className={`text-[10px] font-bold uppercase mb-1 ${theme === 'dark' ? 'text-white/30' : 'text-slate-400'}`}>Difficulty</p>
+                                            <p className={`text-sm font-black ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{difficulty.toUpperCase()}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1222,7 +1246,9 @@ export default function EnglishPracticePage() {
                 </AnimatePresence>
 
                 {/* Main Viewport */}
-                <main className="flex-1 relative flex flex-col overflow-hidden bg-black/20">
+                <main className={`flex-1 relative flex flex-col overflow-hidden transition-colors ${
+                    theme === 'dark' ? 'bg-black/20' : 'bg-slate-50/50'
+                }`}>
                     <AnimatePresence mode="wait">
                         {activeView === 'practice' ? (
                             <motion.div 
@@ -1321,15 +1347,19 @@ export default function EnglishPracticePage() {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-full max-w-sm"
                                             >
-                                                <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-[40px] text-center shadow-2xl">
+                                                <div className={`backdrop-blur-xl border p-8 rounded-[40px] text-center shadow-2xl transition-colors ${
+                                                    theme === 'dark' ? 'bg-black/40 border-white/10' : 'bg-white/80 border-slate-200'
+                                                }`}>
                                                     <div className="w-12 h-12 bg-indigo-600/20 rounded-2xl mx-auto flex items-center justify-center mb-4 text-indigo-400">
                                                         <Sparkles size={24} />
                                                     </div>
-                                                    <h4 className="text-white font-black italic tracking-tighter text-2xl mb-2">DAILY CHALLENGE</h4>
-                                                    <p className="text-white/60 text-sm leading-relaxed mb-6">"{dailyPrompt}"</p>
+                                                    <h4 className={`font-black italic tracking-tighter text-2xl mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>DAILY CHALLENGE</h4>
+                                                    <p className={`text-sm leading-relaxed mb-6 ${theme === 'dark' ? 'text-white/60' : 'text-slate-600'}`}>"{dailyPrompt}"</p>
                                                     <button 
                                                         onClick={handleVoiceInput}
-                                                        className="px-8 py-3 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-400 transition-all active:scale-95"
+                                                        className={`px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 ${
+                                                            theme === 'dark' ? 'bg-white text-black hover:bg-indigo-400' : 'bg-slate-900 text-white hover:bg-indigo-600 shadow-lg'
+                                                        }`}
                                                     >
                                                         Start Response
                                                     </button>
@@ -1424,7 +1454,9 @@ export default function EnglishPracticePage() {
                                                     initial={{ opacity: 0, y: 20 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, y: 10 }}
-                                                    className="absolute bottom-40 left-1/2 -translate-x-1/2 bg-indigo-600/20 backdrop-blur-2xl border border-indigo-500/30 px-8 py-4 rounded-3xl text-white text-lg font-medium shadow-2xl min-w-[300px] text-center"
+                                                    className={`absolute bottom-40 left-1/2 -translate-x-1/2 backdrop-blur-2xl border px-8 py-4 rounded-3xl text-lg font-medium shadow-2xl min-w-[300px] text-center transition-colors ${
+                                                        theme === 'dark' ? 'bg-indigo-600/20 border-indigo-500/30 text-white' : 'bg-white/90 border-slate-200 text-slate-800'
+                                                    }`}
                                                 >
                                                     <div className="flex items-center justify-center gap-3 mb-2">
                                                         <div className="flex gap-1 h-4 items-center">
@@ -1433,13 +1465,13 @@ export default function EnglishPracticePage() {
                                                                     key={i}
                                                                     animate={{ height: [4, 16, 4] }}
                                                                     transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.1 }}
-                                                                    className="w-1 bg-white rounded-full"
+                                                                    className={`w-1 rounded-full ${theme === 'dark' ? 'bg-white' : 'bg-indigo-600'}`}
                                                                 />
                                                             ))}
                                                         </div>
-                                                        <span className="text-sm font-bold uppercase tracking-wider text-indigo-200">Listening...</span>
+                                                        <span className={`text-sm font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-indigo-200' : 'text-indigo-600'}`}>Listening...</span>
                                                     </div>
-                                                    <p className="opacity-90">{transcript || "Say something..."}</p>
+                                                    <p className={theme === 'dark' ? 'opacity-90' : 'text-slate-700'}>{transcript || "Say something..."}</p>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -1514,7 +1546,9 @@ export default function EnglishPracticePage() {
                                     </div>
 
                                     {/* Bottom Controls */}
-                                    <div className="p-12 w-full max-w-2xl mx-auto flex flex-col items-center justify-center gap-6 bg-gradient-to-t from-[#050508] to-transparent z-10">
+                                    <div className={`p-12 w-full max-w-2xl mx-auto flex flex-col items-center justify-center gap-6 z-10 bg-gradient-to-t transition-colors ${
+                                        theme === 'dark' ? 'from-[#050508] to-transparent' : 'from-slate-50 to-transparent'
+                                    }`}>
                                         <div className="space-y-4 w-full">
                                             <AnimatePresence>
                                                 {showTypeInput && (
@@ -1536,7 +1570,9 @@ export default function EnglishPracticePage() {
                                                                 }
                                                             }}
                                                             placeholder="Type here for Quiet Mode (Press Enter to send)..."
-                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-white/20"
+                                                            className={`w-full border rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${
+                                                                theme === 'dark' ? 'bg-white/5 border-white/10 text-white placeholder:text-white/20' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 shadow-sm'
+                                                            }`}
                                                             autoFocus
                                                         />
                                                         <button 
@@ -1561,7 +1597,7 @@ export default function EnglishPracticePage() {
                                                     className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
                                                         showTypeInput 
                                                         ? 'bg-indigo-500/20 border-indigo-500 text-indigo-500' 
-                                                        : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 text-white/20 hover:text-white/40' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 shadow-sm'
                                                     }`}
                                                     title="Toggle Quiet Mode (Typing)"
                                                 >
@@ -1573,7 +1609,7 @@ export default function EnglishPracticePage() {
                                                     className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
                                                         nativeMode 
                                                         ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
-                                                        : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 text-white/20 hover:text-white/40' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 shadow-sm'
                                                     }`}
                                                     title="Translate Mode: Speak in your native language"
                                                 >
@@ -1585,7 +1621,7 @@ export default function EnglishPracticePage() {
                                                     className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border ${
                                                         sayItDifferently 
                                                         ? 'bg-purple-500/20 border-purple-500 text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
-                                                        : 'bg-white/5 border-white/5 text-white/20 hover:text-white/40'
+                                                        : theme === 'dark' ? 'bg-white/5 border-white/5 text-white/20 hover:text-white/40' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 shadow-sm'
                                                 }`}
                                                     title="Say It Differently Mode: Rephrase your sentence like a native"
                                                 >
@@ -1633,8 +1669,8 @@ export default function EnglishPracticePage() {
                             <motion.div key="hub" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1 p-12 overflow-y-auto custom-scrollbar">
                                 <div className="max-w-4xl mx-auto space-y-12">
                                     <header>
-                                        <h2 className="text-4xl font-black text-white italic tracking-tighter">Mission Control</h2>
-                                        <p className="text-white/40">AI-driven roadmap for {learningDNA.personality} personality.</p>
+                                        <h2 className={`text-4xl font-black italic tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Mission Control</h2>
+                                        <p className={theme === 'dark' ? 'text-white/40' : 'text-slate-500'}>AI-driven roadmap for {learningDNA.personality} personality.</p>
                                     </header>
                                     {/* Learning DNA Profile */}
                                     <div className="p-8 bg-indigo-600/10 border border-indigo-500/20 rounded-[40px] flex items-center gap-8">
@@ -1643,16 +1679,18 @@ export default function EnglishPracticePage() {
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-black uppercase text-indigo-400 tracking-widest mb-1">Learning DNA Profile</p>
-                                            <h3 className="text-2xl font-black text-white mb-2">{learningDNA.personality}</h3>
+                                            <h3 className={`text-2xl font-black mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{learningDNA.personality}</h3>
                                             <div className="flex gap-4">
-                                                <span className="text-[10px] text-white/40 bg-white/5 px-2 py-1 rounded-lg">Strength: {learningDNA.strength}</span>
-                                                <span className="text-[10px] text-white/40 bg-white/5 px-2 py-1 rounded-lg">Style: {learningDNA.style}</span>
+                                                <span className={`text-[10px] px-2 py-1 rounded-lg ${theme === 'dark' ? 'text-white/40 bg-white/5' : 'text-slate-600 bg-slate-100'}`}>Strength: {learningDNA.strength}</span>
+                                                <span className={`text-[10px] px-2 py-1 rounded-lg ${theme === 'dark' ? 'text-white/40 bg-white/5' : 'text-slate-600 bg-slate-100'}`}>Style: {learningDNA.style}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <button 
                                         onClick={() => addNotification("info", "Generating personalized quiz based on your persistent errors...", 3000)}
-                                        className="w-full py-6 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 rounded-[32px] border border-indigo-500/20 text-white font-black uppercase text-[10px] tracking-widest transition-all shadow-xl group"
+                                        className={`w-full py-6 rounded-[32px] border font-black uppercase text-[10px] tracking-widest transition-all shadow-xl group ${
+                                            theme === 'dark' ? 'bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border-indigo-500/20 text-white' : 'bg-white border-indigo-100 text-indigo-600'
+                                        }`}
                                     >
                                         <div className="flex items-center justify-center gap-3">
                                             <Sparkles size={18} className="text-indigo-400 group-hover:rotate-12 transition-transform" />
@@ -1670,12 +1708,14 @@ export default function EnglishPracticePage() {
                                                 const count = mistakes.filter(m => m.category === area).length;
                                                 const intensity = Math.min(100, count * 20);
                                                 return (
-                                                    <div key={idx} className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
-                                                        <div className="w-full h-1.5 bg-white/5 rounded-full mb-3 overflow-hidden">
+                                                    <div key={idx} className={`p-4 border rounded-2xl text-center shadow-sm ${
+                                                        theme === 'dark' ? 'bg-white/[0.02] border-white/5' : 'bg-white border-slate-100'
+                                                    }`}>
+                                                        <div className={`w-full h-1.5 rounded-full mb-3 overflow-hidden ${theme === 'dark' ? 'bg-white/5' : 'bg-slate-100'}`}>
                                                             <div className="h-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" style={{ width: `${intensity}%` }} />
                                                         </div>
-                                                        <h5 className="text-[8px] font-black text-white/40 uppercase tracking-widest">{area}</h5>
-                                                        <p className="text-xs font-black text-white mt-1">{count}</p>
+                                                        <h5 className={`text-[8px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-white/40' : 'text-slate-400'}`}>{area}</h5>
+                                                        <p className={`text-xs font-black mt-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{count}</p>
                                                     </div>
                                                 );
                                             })}
@@ -1692,12 +1732,16 @@ export default function EnglishPracticePage() {
                                                 { step: 2, title: 'Fluency', status: 'in-progress' },
                                                 { step: 3, title: 'Mastery', status: 'locked' }
                                             ].map((s, idx) => (
-                                                <div key={idx} className={`p-6 rounded-3xl border transition-all ${s.status === 'completed' ? 'bg-indigo-600/20 border-indigo-500/40' : s.status === 'in-progress' ? 'bg-white/5 border-white/20 animate-pulse' : 'bg-black/20 border-white/5 opacity-50'}`}>
-                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center mb-3">
-                                                        {s.status === 'completed' ? <CheckCircle2 size={16} className="text-emerald-400" /> : <p className="text-[10px] font-black text-white/40">{s.step}</p>}
+                                                <div key={idx} className={`p-6 rounded-3xl border transition-all ${
+                                                    s.status === 'completed' ? 'bg-indigo-600/20 border-indigo-500/40' : 
+                                                    s.status === 'in-progress' ? (theme === 'dark' ? 'bg-white/5 border-white/20 animate-pulse' : 'bg-indigo-50 border-indigo-200 animate-pulse shadow-sm') : 
+                                                    (theme === 'dark' ? 'bg-black/20 border-white/5 opacity-50' : 'bg-slate-50 border-slate-200 opacity-50')
+                                                }`}>
+                                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 ${theme === 'dark' ? 'bg-white/5' : 'bg-white shadow-sm'}`}>
+                                                        {s.status === 'completed' ? <CheckCircle2 size={16} className="text-emerald-400" /> : <p className={`text-[10px] font-black ${theme === 'dark' ? 'text-white/40' : 'text-slate-400'}`}>{s.step}</p>}
                                                     </div>
-                                                    <h5 className="text-[11px] font-black text-white uppercase tracking-wider">{s.title}</h5>
-                                                    <p className="text-[9px] text-white/30 italic mt-1">{s.status}</p>
+                                                    <h5 className={`text-[11px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{s.title}</h5>
+                                                    <p className={`text-[9px] italic mt-1 ${theme === 'dark' ? 'text-white/30' : 'text-slate-400'}`}>{s.status}</p>
                                                 </div>
                                             ))}
                                         </div>
@@ -1714,21 +1758,25 @@ export default function EnglishPracticePage() {
                                                     { title: "Professional Phrasal Verbs", tag: "Vocab", level: "B2" },
                                                     { title: "Nuance in Casual Talk", tag: "Fluency", level: "B1" }
                                                 ].map((lesson, idx) => (
-                                                    <button key={idx} className="w-full p-6 bg-white/[0.03] hover:bg-white/5 border border-white/5 rounded-3xl text-left flex items-center justify-between group transition-all">
+                                                    <button key={idx} className={`w-full p-6 border rounded-3xl text-left flex items-center justify-between group transition-all ${
+                                                        theme === 'dark' ? 'bg-white/[0.03] hover:bg-white/5 border-white/5' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm'
+                                                    }`}>
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/20 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all">
+                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                                                theme === 'dark' ? 'bg-white/5 text-white/20 group-hover:text-indigo-400 group-hover:bg-indigo-500/10' : 'bg-slate-100 text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50'
+                                                            }`}>
                                                                 <Layout size={20}/>
                                                             </div>
                                                             <div>
-                                                                <h6 className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">{lesson.title}</h6>
+                                                                <h6 className={`text-sm font-bold transition-colors ${theme === 'dark' ? 'text-white/80 group-hover:text-white' : 'text-slate-800 group-hover:text-indigo-600'}`}>{lesson.title}</h6>
                                                                 <div className="flex gap-2 mt-1">
                                                                     <span className="text-[8px] text-indigo-400/60 font-bold uppercase">{lesson.tag}</span>
-                                                                    <span className="text-[8px] text-white/20 font-bold uppercase">•</span>
-                                                                    <span className="text-[8px] text-white/20 font-bold uppercase">{lesson.level} Level</span>
+                                                                    <span className={`text-[8px] font-bold uppercase ${theme === 'dark' ? 'text-white/20' : 'text-slate-300'}`}>•</span>
+                                                                    <span className={`text-[8px] font-bold uppercase ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>{lesson.level} Level</span>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <ChevronRight size={16} className="text-white/20 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+                                                        <ChevronRight size={16} className={`group-hover:translate-x-1 transition-all ${theme === 'dark' ? 'text-white/20 group-hover:text-indigo-400' : 'text-slate-300 group-hover:text-indigo-600'}`} />
                                                     </button>
                                                 ))}
                                             </div>
@@ -1739,17 +1787,20 @@ export default function EnglishPracticePage() {
                                                 <Zap size={14}/> Intelligence Focus
                                             </h5>
                                             <div className="grid grid-cols-1 gap-4">
-                                                <button onClick={() => { setActiveView('practice'); setTrainingMode('replay'); }} className="p-8 bg-rose-500/10 border border-rose-500/20 rounded-[32px] text-left flex items-center gap-6 hover:bg-rose-500/20 transition-all group">
+                                                <button onClick={() => { setActiveView('practice'); setTrainingMode('replay'); }} className={`p-8 border rounded-[32px] text-left flex items-center gap-6 transition-all group ${
+                                                    theme === 'dark' ? 'bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20' : 'bg-rose-50 border-rose-100 hover:bg-rose-100/50 shadow-sm'
+                                                }`}>
                                                     <div className="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform"><RefreshCcw /></div>
                                                     <div>
-                                                        <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">Error Replay System</h5>
-                                                        <p className="text-[10px] text-rose-300/60 leading-relaxed">Face your {mistakes.length} past persistent mistakes in a specialized shadowing drill.</p>
+                                                        <h5 className={`text-xs font-black uppercase tracking-widest mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Error Replay System</h5>
+                                                        <p className={`text-[10px] leading-relaxed ${theme === 'dark' ? 'text-rose-300/60' : 'text-rose-600/60'}`}>Face your {mistakes.length} past persistent mistakes in a specialized shadowing drill.</p>
                                                     </div>
                                                 </button>
-                                                <button onClick={() => { setActiveView('practice'); setTrainingMode('debate'); }} className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-[32px] text-left flex items-center gap-6 hover:bg-amber-500/20 transition-all group">
+                                                <button onClick={() => { setActiveView('practice'); setTrainingMode('debate'); }} className={`p-8 border rounded-[32px] text-left flex items-center gap-6 transition-all group ${
+                                                    theme === 'dark' ? 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'bg-amber-50 border-amber-100 hover:bg-amber-100/50 shadow-sm'
+                                                }`}>
                                                     <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform"><Swords /></div>
                                                     <div>
-                                                        <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">Advanced Debate Mode</h5>
                                                         <p className="text-[10px] text-amber-300/60 leading-relaxed">Challenge the AI on complex topics to improve your technical vocabulary.</p>
                                                     </div>
                                                 </button>
@@ -1767,9 +1818,11 @@ export default function EnglishPracticePage() {
                                 className="flex-1 p-12 overflow-y-auto custom-scrollbar"
                             >
                                 <div className="max-w-4xl mx-auto space-y-12">
-                                    <h2 className="text-4xl font-black text-white mb-8 italic tracking-tighter">Vocab Bank</h2>
+                                    <h2 className={`text-4xl font-black mb-8 italic tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Vocab Bank</h2>
                                     {vocabulary.length === 0 ? (
-                                        <div className="h-96 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[40px] text-white/20 space-y-4">
+                                        <div className={`h-96 flex flex-col items-center justify-center border-2 border-dashed rounded-[40px] space-y-4 ${
+                                            theme === 'dark' ? 'border-white/5 text-white/20' : 'border-slate-200 text-slate-400'
+                                        }`}>
                                             <BookMarked size={48}/>
                                             <p className="text-sm font-bold">Your bank is empty. Kynara will suggest words as you practice.</p>
                                         </div>
@@ -1781,22 +1834,26 @@ export default function EnglishPracticePage() {
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     transition={{ delay: i * 0.05 }}
-                                                    className="p-8 bg-white/[0.02] border border-white/5 rounded-[32px] flex items-center justify-between group hover:bg-white/[0.04] transition-all"
+                                                    className={`p-8 border rounded-[32px] flex items-center justify-between group transition-all ${
+                                                        theme === 'dark' ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm'
+                                                    }`}
                                                 >
                                                     <div className="space-y-2">
                                                         <div className="flex items-center gap-3">
-                                                            <h4 className="text-xl font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors">{v.word}</h4>
+                                                            <h4 className={`text-xl font-black uppercase tracking-widest group-hover:text-indigo-400 transition-colors ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{v.word}</h4>
                                                             <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-lg font-black uppercase tracking-widest border border-indigo-500/20">New word</span>
                                                         </div>
-                                                        <p className="text-sm text-white/40 italic font-medium leading-relaxed">"{v.meaning}"</p>
+                                                        <p className={`text-sm italic font-medium leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-slate-600'}`}>"{v.meaning}"</p>
                                                         <div className="flex items-center gap-2 pt-2">
                                                             <span className="text-[9px] font-black text-indigo-300/40 uppercase tracking-widest">Example:</span>
-                                                            <p className="text-[11px] text-white/60">{v.example}</p>
+                                                            <p className={`text-[11px] ${theme === 'dark' ? 'text-white/60' : 'text-slate-500'}`}>{v.example}</p>
                                                         </div>
                                                     </div>
                                                     <button 
                                                         onClick={() => speakResponse(v.word)}
-                                                        className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 hover:text-white hover:bg-indigo-600 transition-all shadow-lg"
+                                                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-lg ${
+                                                            theme === 'dark' ? 'bg-white/5 text-white/20 hover:text-white hover:bg-indigo-600' : 'bg-slate-100 text-slate-400 hover:text-white hover:bg-indigo-600'
+                                                        }`}
                                                     >
                                                         <Volume2 size={24} />
                                                     </button>
@@ -1817,31 +1874,37 @@ export default function EnglishPracticePage() {
                                 <div className="max-w-4xl mx-auto w-full space-y-12">
                                     <header className="flex items-center justify-between">
                                         <div>
-                                            <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Mind Games Hub</h2>
-                                            <p className="text-white/40">Sharpen your neural linguistic pathways.</p>
+                                            <h2 className={`text-4xl font-black italic tracking-tighter uppercase ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Mind Games Hub</h2>
+                                            <p className={theme === 'dark' ? 'text-white/40' : 'text-slate-500'}>Sharpen your neural linguistic pathways.</p>
                                         </div>
-                                        <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-3 rounded-2xl">
+                                        <div className={`flex items-center gap-4 px-6 py-3 rounded-2xl border ${
+                                            theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
+                                        }`}>
                                             <Trophy size={20} className="text-amber-400" />
-                                            <span className="text-lg font-black text-white tracking-widest">{gameScore}</span>
+                                            <span className="text-lg font-black tracking-widest">{gameScore}</span>
                                         </div>
                                     </header>
 
                                     {!activeGame ? (
                                         <div className="grid grid-cols-2 gap-8">
-                                            <button onClick={startScramble} className="group p-10 bg-indigo-500/10 border border-indigo-500/20 rounded-[40px] text-left transition-all hover:bg-indigo-500/20 hover:-translate-y-2">
+                                            <button onClick={startScramble} className={`group p-10 border rounded-[40px] text-left transition-all hover:-translate-y-2 ${
+                                                theme === 'dark' ? 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20' : 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100/50 shadow-sm'
+                                            }`}>
                                                 <div className="w-16 h-16 rounded-[24px] bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform">
                                                     <Swords size={32} />
                                                 </div>
-                                                <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Neural Scramble</h3>
-                                                <p className="text-white/40 text-sm leading-relaxed">Reorder shuffled linguistic components to reconstruct perfect structures.</p>
+                                                <h3 className={`text-2xl font-black uppercase tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Neural Scramble</h3>
+                                                <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-slate-600'}`}>Reorder shuffled linguistic components to reconstruct perfect structures.</p>
                                             </button>
 
-                                            <button onClick={startBlanks} className="group p-10 bg-amber-500/10 border border-amber-500/20 rounded-[40px] text-left transition-all hover:bg-amber-500/20 hover:-translate-y-2">
+                                            <button onClick={startBlanks} className={`group p-10 border rounded-[40px] text-left transition-all hover:-translate-y-2 ${
+                                                theme === 'dark' ? 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'bg-amber-50 border-amber-100 hover:bg-amber-100/50 shadow-sm'
+                                            }`}>
                                                 <div className="w-16 h-16 rounded-[24px] bg-amber-500/20 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
                                                     <Target size={32} />
                                                 </div>
-                                                <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Contextual Blanks</h3>
-                                                <p className="text-white/40 text-sm leading-relaxed">Fill in missing variables to complete technical and casual contextual chains.</p>
+                                                <h3 className={`text-2xl font-black uppercase tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Contextual Blanks</h3>
+                                                <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-white/40' : 'text-slate-600'}`}>Fill in missing variables to complete technical and casual contextual chains.</p>
                                             </button>
                                         </div>
                                     ) : activeGame === 'scramble' ? (
@@ -1876,7 +1939,9 @@ export default function EnglishPracticePage() {
                                                             animate={{ opacity: 1, y: 0 }}
                                                             exit={{ opacity: 0, scale: 0.8 }}
                                                             onClick={() => handleScrambleWord(word, i)}
-                                                            className="px-5 py-3 bg-white/5 border border-white/10 text-white font-medium rounded-2xl hover:bg-white/10 hover:border-indigo-500/50 transition-all"
+                                                            className={`px-5 py-3 border font-medium rounded-2xl transition-all ${
+                                                                theme === 'dark' ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-indigo-500/50' : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-500 hover:shadow-md'
+                                                            }`}
                                                         >
                                                             {word}
                                                         </motion.button>
@@ -1903,16 +1968,18 @@ export default function EnglishPracticePage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="space-y-12 bg-white/[0.02] border border-white/5 p-12 rounded-[48px] relative overflow-hidden">
+                                        <div className={`space-y-12 border p-12 rounded-[48px] relative overflow-hidden ${
+                                            theme === 'dark' ? 'bg-white/[0.02] border-white/5' : 'bg-white border-slate-200 shadow-xl'
+                                        }`}>
                                              <div className="flex items-center justify-between mb-8">
                                                 <span className="text-[10px] font-black uppercase text-amber-500 tracking-[0.3em]">Game: Contextual Blanks</span>
-                                                <button onClick={() => setActiveGame(null)} className="text-white/20 hover:text-white transition-colors">
+                                                <button onClick={() => setActiveGame(null)} className={`transition-colors ${theme === 'dark' ? 'text-white/20 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
                                                     <X size={20} />
                                                 </button>
                                             </div>
-
+ 
                                             <div className="text-center">
-                                                <h3 className="text-4xl font-black text-white leading-tight">
+                                                <h3 className={`text-4xl font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                                                     {gameData.sentence.split("___")[0]}
                                                     <span className="px-6 py-1 border-b-4 border-amber-500 text-amber-500 mx-2">
                                                         {gameStatus === 'correct' ? gameData.answer : '?'}
@@ -1928,9 +1995,9 @@ export default function EnglishPracticePage() {
                                                         onClick={() => handleBlankChoice(choice)}
                                                         disabled={gameStatus !== 'playing'}
                                                         className={`p-6 rounded-3xl border text-xl font-bold transition-all ${
-                                                            gameStatus === 'playing' ? 'bg-white/5 border-white/5 hover:border-amber-500/50 hover:bg-white/10' :
+                                                            gameStatus === 'playing' ? (theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-amber-500/50 hover:bg-white/10' : 'bg-white border-slate-200 hover:border-amber-500 hover:shadow-md') :
                                                             choice === gameData.answer ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' :
-                                                            choice === userSelection[0] ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-black/20 border-white/5 opacity-40'
+                                                            choice === userSelection[0] ? 'bg-rose-500/20 border-rose-500 text-rose-400' : (theme === 'dark' ? 'bg-black/20 border-white/5 opacity-40' : 'bg-slate-100 border-slate-200 opacity-40')
                                                         }`}
                                                     >
                                                         {choice}
@@ -1958,17 +2025,21 @@ export default function EnglishPracticePage() {
                 </main>
 
                 {/* Right Panel - Feedback & History */}
-                <aside className="w-96 border-l border-white/5 bg-black/40 backdrop-blur-3xl flex flex-col z-10 transition-all duration-500">
-                    <div className="p-8 border-b border-white/5">
-                        <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl mb-6">
+                <aside className={`w-96 border-l flex flex-col z-10 transition-all duration-500 ${
+                    theme === 'dark' ? 'border-white/5 bg-black/40 backdrop-blur-3xl' : 'border-slate-200 bg-white shadow-lg'
+                }`}>
+                    <div className={`p-8 border-b ${theme === 'dark' ? 'border-white/5' : 'border-slate-200'}`}>
+                        <div className={`flex gap-1 p-1 rounded-xl mb-6 ${
+                            theme === 'dark' ? 'bg-white/[0.03]' : 'bg-slate-100'
+                        }`}>
                             {['notes', 'history', 'stats'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
                                     className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                                         activeTab === tab 
-                                        ? 'bg-indigo-600 text-white shadow-lg' 
-                                        : 'text-white/30 hover:text-white/60 hover:bg-white/5'
+                                        ? (theme === 'dark' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-md')
+                                        : (theme === 'dark' ? 'text-white/30 hover:text-white/60 hover:bg-white/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200')
                                     }`}
                                 >
                                     {tab}
@@ -1977,11 +2048,13 @@ export default function EnglishPracticePage() {
                         </div>
 
                         <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] uppercase font-black text-white/30 tracking-[0.2em]">
+                            <h3 className={`text-[10px] uppercase font-black tracking-[0.2em] ${theme === 'dark' ? 'text-white/30' : 'text-slate-500'}`}>
                                 {activeTab === 'notes' ? 'Learning Notes' : 
                                  activeTab === 'stats' ? 'Speaking Analytics' : 'Dialogue Flow'}
                             </h3>
-                            <span className="bg-white/5 text-white/40 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                            <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${
+                                theme === 'dark' ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500'
+                            }`}>
                                 {activeTab === 'notes' ? mistakes.length : 
                                  activeTab === 'stats' ? 'Live' : Math.floor(sessionMessages.length / 2)} Total
                             </span>
@@ -1999,26 +2072,32 @@ export default function EnglishPracticePage() {
                                     className="space-y-6"
                                 >
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
+                                        <div className={`p-4 rounded-2xl border relative overflow-hidden group ${
+                                            theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
+                                        }`}>
                                             <div className="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Fluency</p>
+                                            <p className={`text-[10px] font-bold uppercase mb-2 ${theme === 'dark' ? 'text-white/30' : 'text-slate-500'}`}>Fluency</p>
                                             <p className="text-2xl font-black text-indigo-400">{analytics.fluency}%</p>
                                         </div>
-                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
+                                        <div className={`p-4 rounded-2xl border relative overflow-hidden group ${
+                                            theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
+                                        }`}>
                                             <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <p className="text-[10px] text-white/30 font-bold uppercase mb-2">Confidence</p>
+                                            <p className={`text-[10px] font-bold uppercase mb-2 ${theme === 'dark' ? 'text-white/30' : 'text-slate-500'}`}>Confidence</p>
                                             <p className="text-2xl font-black text-emerald-400">{analytics.confidence}%</p>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                                    <div className={`p-4 rounded-2xl border flex items-center justify-between ${
+                                        theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
+                                    }`}>
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center">
                                                 <RefreshCcw size={16} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-white/30 font-bold uppercase">Filler Words</p>
-                                                <p className="text-sm font-black text-white">{analytics.fillersCount} Detected</p>
+                                                <p className={`text-[10px] font-bold uppercase ${theme === 'dark' ? 'text-white/30' : 'text-slate-500'}`}>Filler Words</p>
+                                                <p className={`text-sm font-black ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{analytics.fillersCount} Detected</p>
                                             </div>
                                         </div>
                                         {analytics.fillersCount > 5 && (
@@ -2034,10 +2113,10 @@ export default function EnglishPracticePage() {
                                         ].map(stat => (
                                             <div key={stat.label} className="space-y-2">
                                                 <div className="flex justify-between text-[10px] font-bold uppercase">
-                                                    <span className="text-white/50">{stat.label}</span>
-                                                    <span className="text-white">{stat.score}/100</span>
+                                                    <span className={`${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>{stat.label}</span>
+                                                    <span className={`${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{stat.score}/100</span>
                                                 </div>
-                                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                <div className={`h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-white/5' : 'bg-slate-200'}`}>
                                                     <motion.div 
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${stat.score}%` }}
@@ -2066,10 +2145,12 @@ export default function EnglishPracticePage() {
                                         animate={{ opacity: 1 }}
                                         className="h-full flex flex-col items-center justify-center text-center p-8"
                                     >
-                                        <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-white/20 mb-4">
+                                        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-4 ${
+                                            theme === 'dark' ? 'bg-white/5 text-white/20' : 'bg-slate-100 text-slate-400'
+                                        }`}>
                                             <BookOpen size={32} />
                                         </div>
-                                        <p className="text-white/40 text-sm font-medium">Your learning notes will appear here as you practice.</p>
+                                        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>Your learning notes will appear here as you practice.</p>
                                     </motion.div>
                                 ) : (
                                     mistakes.map(mistake => (
@@ -2077,27 +2158,29 @@ export default function EnglishPracticePage() {
                                             key={mistake.id}
                                             initial={{ x: 20, opacity: 0 }}
                                             animate={{ x: 0, opacity: 1 }}
-                                            className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 hover:border-indigo-500/30 transition-all group"
+                                            className={`rounded-2xl p-4 hover:border-indigo-500/30 transition-all group ${
+                                                theme === 'dark' ? 'bg-white/[0.03] border border-white/5' : 'bg-slate-50 border border-slate-200'
+                                            }`}
                                         >
                                             <div className="flex items-start gap-3">
                                                 <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
                                                     <AlertCircle size={16} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs text-white/40 font-bold uppercase tracking-wider mb-2">Correction Found</p>
+                                                    <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>Correction Found</p>
                                                     <div className="space-y-3">
                                                         <div>
                                                             <p className="text-[10px] text-rose-400 font-bold uppercase mb-1">You said:</p>
-                                                            <p className="text-sm text-white/70 line-through decoration-rose-500/50">"{mistake.wrong}"</p>
+                                                            <p className={`text-sm line-through decoration-rose-500/50 ${theme === 'dark' ? 'text-white/70' : 'text-slate-600'}`}>"{mistake.wrong}"</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-[10px] text-indigo-400 font-bold uppercase mb-1">Kynara says:</p>
-                                                            <p className="text-sm text-white font-medium italic">"{mistake.correction}"</p>
+                                                            <p className={`text-sm font-medium italic ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>"{mistake.correction}"</p>
                                                         </div>
                                                         {mistake.explanation && (
-                                                            <div className="pt-2 border-t border-white/5">
+                                                            <div className={`pt-2 ${theme === 'dark' ? 'border-t border-white/5' : 'border-t border-slate-200'}`}>
                                                                 <p className="text-[10px] text-amber-400/60 font-bold uppercase mb-1">Why?</p>
-                                                                <p className="text-xs text-white/40 italic">{mistake.explanation}</p>
+                                                                <p className={`text-xs italic ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>{mistake.explanation}</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -2129,7 +2212,7 @@ export default function EnglishPracticePage() {
                                         <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed ${
                                             msg.role === 'user' 
                                             ? 'bg-indigo-600/20 text-indigo-200 border border-indigo-500/20 rounded-tr-none' 
-                                            : 'bg-white/5 text-white/70 border border-white/5 rounded-tl-none'
+                                            : (theme === 'dark' ? 'bg-white/5 text-white/70 border border-white/5 rounded-tl-none' : 'bg-slate-100 text-slate-700 border border-slate-200 rounded-tl-none')
                                         }`}>
                                             {msg.content}
                                         </div>
@@ -2139,22 +2222,22 @@ export default function EnglishPracticePage() {
                         </AnimatePresence>
                     </div>
 
-                    <div className="p-6 border-t border-white/5 bg-indigo-600/10">
+                    <div className={`p-6 border-t ${theme === 'dark' ? 'border-white/5 bg-indigo-600/10' : 'border-slate-200 bg-indigo-50'}`}>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
                                 <Trophy size={20} />
                             </div>
                             <div>
-                                <h4 className="text-sm font-bold text-white uppercase tracking-tighter">Daily Target (5 Spoken)</h4>
+                                <h4 className={`text-sm font-bold uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Daily Target (5 Spoken)</h4>
                                 <div className="flex items-center gap-3 mt-1">
-                                    <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <div className={`flex-1 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-200'}`}>
                                         <motion.div 
                                             initial={{ width: 0 }}
                                             animate={{ width: `${Math.min(100, (progress / 5) * 100)}%` }}
                                             className={`h-full bg-gradient-to-r ${progress >= 5 ? 'from-emerald-500 to-teal-500' : 'from-indigo-500 to-purple-500'} rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]`} 
                                         />
                                     </div>
-                                    <span className="text-[10px] font-bold text-white/60">{progress}/5</span>
+                                    <span className={`text-[10px] font-bold ${theme === 'dark' ? 'text-white/60' : 'text-slate-500'}`}>{progress}/5</span>
                                 </div>
                             </div>
                         </div>
@@ -2163,7 +2246,7 @@ export default function EnglishPracticePage() {
                                 <Zap size={12} /> Daily Goal Smashed! +20 XP Reward
                             </div>
                         ) : (
-                            <p className="text-[11px] text-white/50 leading-relaxed">
+                            <p className={`text-[11px] leading-relaxed ${theme === 'dark' ? 'text-white/50' : 'text-slate-600'}`}>
                                 Practice {5 - progress} more sentences to hit your daily goal and earn bonus XP.
                             </p>
                         )}
@@ -2186,16 +2269,18 @@ export default function EnglishPracticePage() {
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-2xl bg-[#0a0a0f] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl"
+                            className={`relative w-full max-w-2xl border rounded-[32px] overflow-hidden shadow-2xl ${
+                                theme === 'dark' ? 'bg-[#0a0a0f] border-white/10' : 'bg-white border-slate-200'
+                            }`}
                         >
-                            <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                            <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'border-white/5' : 'border-slate-200'}`}>
                                 <div>
-                                    <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                                    <h2 className={`text-2xl font-black flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                                         Achievements <Trophy className="text-amber-500" />
                                     </h2>
-                                    <p className="text-white/40 text-sm mt-1">Earn badges to showcase your progress</p>
+                                    <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>Earn badges to showcase your progress</p>
                                 </div>
-                                <button onClick={() => setShowBadges(false)} className="p-2 hover:bg-white/5 rounded-xl text-white/40 transition-colors">
+                                <button onClick={() => setShowBadges(false)} className={`p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-white/40' : 'hover:bg-slate-100 text-slate-500'}`}>
                                     <X size={24} />
                                 </button>
                             </div>
@@ -2210,18 +2295,18 @@ export default function EnglishPracticePage() {
                                                 className={`p-5 rounded-2xl border transition-all duration-500 ${
                                                     isEarned 
                                                     ? 'bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)]' 
-                                                    : 'bg-white/[0.02] border-white/5 opacity-50'
+                                                    : (theme === 'dark' ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-slate-50 border-slate-200 opacity-50')
                                                 }`}
                                             >
                                                 <div className="flex items-start gap-4">
                                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                                                        isEarned ? 'bg-indigo-500/20' : 'bg-white/5 grayscale'
+                                                        isEarned ? 'bg-indigo-500/20' : (theme === 'dark' ? 'bg-white/5 grayscale' : 'bg-slate-200 grayscale')
                                                     }`}>
                                                         {badge.icon}
                                                     </div>
                                                     <div className="flex-1">
-                                                        <h3 className={`font-bold ${isEarned ? 'text-white' : 'text-white/40'}`}>{badge.name}</h3>
-                                                        <p className="text-xs text-white/30 mt-1">{badge.desc}</p>
+                                                        <h3 className={`font-bold ${isEarned ? (theme === 'dark' ? 'text-white' : 'text-slate-900') : (theme === 'dark' ? 'text-white/40' : 'text-slate-500')}`}>{badge.name}</h3>
+                                                        <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-white/30' : 'text-slate-600'}`}>{badge.desc}</p>
                                                         
                                                         {isEarned ? (
                                                             <div className="flex items-center gap-2 mt-4">
@@ -2239,7 +2324,7 @@ export default function EnglishPracticePage() {
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <div className="mt-4 flex items-center gap-1.5 text-[10px] font-bold text-white/20 uppercase tracking-wider">
+                                                            <div className={`mt-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>
                                                                 <Lock size={12} /> Locked
                                                             </div>
                                                         )}
@@ -2256,11 +2341,11 @@ export default function EnglishPracticePage() {
                                     </h4>
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-white/60">Milestone Reach 2000 XP</span>
+                                            <span className={`${theme === 'dark' ? 'text-white/60' : 'text-slate-600'}`}>Milestone Reach 2000 XP</span>
                                             <span className="text-amber-500/60 font-mono">LOCKED</span>
                                         </div>
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-white/60">30 Day Multi-Streak</span>
+                                            <span className={`${theme === 'dark' ? 'text-white/60' : 'text-slate-600'}`}>30 Day Multi-Streak</span>
                                             <span className="text-amber-500/60 font-mono">LOCKED</span>
                                         </div>
                                     </div>
@@ -2283,15 +2368,17 @@ export default function EnglishPracticePage() {
                         <motion.div 
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
-                            className="bg-white/[0.03] border border-white/10 p-12 rounded-[40px] max-w-2xl w-full relative overflow-hidden"
+                            className={`border p-12 rounded-[40px] max-w-2xl w-full relative overflow-hidden ${
+                                theme === 'dark' ? 'bg-white/[0.03] border-white/10' : 'bg-white border-slate-200 shadow-2xl'
+                            }`}
                         >
                             <div className="relative z-10 text-center space-y-8">
                                 <div className="w-20 h-20 bg-indigo-500 rounded-full mx-auto flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.5)]">
                                     <Award size={40} className="text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-4xl font-black text-white italic tracking-tighter mb-2">Session Complete!</h2>
-                                    <p className="text-white/40 text-sm">You've just completed a focused {trainingMode} session.</p>
+                                    <h2 className={`text-4xl font-black italic tracking-tighter mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Session Complete!</h2>
+                                    <p className={`text-sm ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>You've just completed a focused {trainingMode} session.</p>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-4">
@@ -2300,11 +2387,11 @@ export default function EnglishPracticePage() {
                                         { label: 'Words', val: sessionStats.newWords || 0, icon: <BookMarked size={14}/> },
                                         { label: 'Accuracy', val: `${analytics.accuracy}%`, icon: <BarChart3 size={14}/> }
                                     ].map((s, i) => (
-                                        <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                            <div className="flex items-center justify-center gap-2 text-white/30 text-[9px] font-black uppercase mb-1">
+                                        <div key={i} className={`p-4 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                                            <div className={`flex items-center justify-center gap-2 text-[9px] font-black uppercase mb-1 ${theme === 'dark' ? 'text-white/30' : 'text-slate-500'}`}>
                                                 {s.icon} {s.label}
                                             </div>
-                                            <div className="text-white font-black text-lg">{s.val}</div>
+                                            <div className={`font-black text-lg ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{s.val}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -2312,13 +2399,13 @@ export default function EnglishPracticePage() {
                                 <div className="space-y-4 text-left">
                                     <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Coaching Insights</p>
                                     <div className="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl">
-                                        <p className="text-white/80 text-sm leading-relaxed mb-4">
+                                        <p className={`text-sm leading-relaxed mb-4 ${theme === 'dark' ? 'text-white/80' : 'text-slate-700'}`}>
                                             Excellent control of tenses during the roleplay! You're consistently using the past perfect correctly. 
                                             To reach the next level, try to reduce your use of filler words like "like" and "um" which occurred {analytics.fillersCount} times today.
                                         </p>
                                         <div className="flex gap-2">
                                             <span className="px-2 py-1 bg-indigo-500/20 text-indigo-400 text-[8px] font-bold rounded uppercase">Keep it Focus: Transition Words</span>
-                                            <span className="px-2 py-1 bg-white/5 text-white/40 text-[8px] font-bold rounded uppercase">Suggested: Business Vocabulary</span>
+                                            <span className={`px-2 py-1 text-[8px] font-bold rounded uppercase ${theme === 'dark' ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500'}`}>Suggested: Business Vocabulary</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2351,7 +2438,7 @@ export default function EnglishPracticePage() {
                                 n.type === 'levelup' ? 'bg-amber-500/20 border-amber-500/30 text-amber-200' :
                                 n.type === 'mistake' ? 'bg-rose-500/20 border-rose-500/30 text-rose-200' :
                                 n.type === 'goal' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-200' :
-                                'bg-white/10 border-white/10 text-white'
+                                (theme === 'dark' ? 'bg-white/10 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-800')
                             }`}
                         >
                             <div className="flex-shrink-0">
@@ -2383,7 +2470,9 @@ export default function EnglishPracticePage() {
                             initial={{ scale: 0.5, opacity: 0, y: 100 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.8, opacity: 0 }}
-                            className="relative w-full max-w-lg bg-gradient-to-br from-indigo-900/40 to-black border border-white/10 rounded-[48px] p-12 text-center overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.3)]"
+                            className={`relative w-full max-w-lg border rounded-[48px] p-12 text-center overflow-hidden shadow-2xl ${
+                                theme === 'dark' ? 'bg-gradient-to-br from-indigo-900/40 to-black border-white/10' : 'bg-white border-slate-200'
+                            }`}
                         >
                             {/* Decorative Glows */}
                             <div className="absolute -top-20 -left-20 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]" />
@@ -2397,10 +2486,10 @@ export default function EnglishPracticePage() {
                                 <Trophy size={48} className="text-white" />
                             </motion.div>
                             
-                            <h2 className="text-5xl font-black text-white italic tracking-tighter mb-4">LEVELED UP!</h2>
+                            <h2 className={`text-5xl font-black italic tracking-tighter mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>LEVELED UP!</h2>
                             <p className="text-amber-400 text-xl font-black uppercase tracking-widest mb-8">{level}</p>
                             
-                            <p className="text-white/60 text-sm leading-relaxed mb-10">
+                            <p className={`text-sm leading-relaxed mb-10 ${theme === 'dark' ? 'text-white/60' : 'text-slate-600'}`}>
                                 You're pushing your limits! Your dedication is visible in every session. New achievements and scenarios are waiting.
                             </p>
                             
@@ -2429,13 +2518,15 @@ export default function EnglishPracticePage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
-                            className="relative w-full max-w-md bg-[#0a0a0f] border border-white/10 rounded-[40px] p-10 text-center"
+                            className={`relative w-full max-w-md rounded-[40px] p-10 text-center ${
+                                theme === 'dark' ? 'bg-[#0a0a0f] border border-white/10' : 'bg-white border border-slate-200 shadow-2xl'
+                            }`}
                         >
                             <div className="w-20 h-20 bg-orange-500/20 rounded-full mx-auto flex items-center justify-center mb-6">
                                 <Zap size={40} className="text-orange-500 fill-orange-500" />
                             </div>
-                            <h3 className="text-3xl font-black text-white italic tracking-tighter mb-4">Don’t break your streak!</h3>
-                            <p className="text-white/40 text-sm mb-8">You're on a {streak}-day streak. If you leave now, you might lose your progress for today.</p>
+                            <h3 className={`text-3xl font-black italic tracking-tighter mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Don’t break your streak!</h3>
+                            <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-white/40' : 'text-slate-600'}`}>You're on a {streak}-day streak. If you leave now, you might lose your progress for today.</p>
                             
                             <div className="flex flex-col gap-3">
                                 <button 
